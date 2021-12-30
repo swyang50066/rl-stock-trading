@@ -1,2 +1,2 @@
-# RLStockPrediction
-Side project for stock price prediction with reinforcement learning model
+# RLStockTrader
+Deep reinforcement learning based automatic stock-trading bot
