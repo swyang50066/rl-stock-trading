@@ -44,14 +44,28 @@ class Environment(gym.Env):
     '''
     def __init__(self, df, 
                        day=0,
-                       previous_state=list(),
                        STOCK_DIM=30,    # total number of stocks in our portfolio
                        HMAX_NORMALIZE=100,    # shares normalization factor, e.g.) 100 shares per trade
                        INITIAL_ACCOUNT_BALANCE=1000000,    # initial amount of money we have in our account
                        TRANSACTION_FEE_PERCENT=.0001,    # trasaction fee, e.g.) 0.1% resonable percentage
                        TUBULENCE_THRESHOLD=140,    # turbulence index: 90-150 reasonable threshold
                        REWARD_SCALING=1.e-4,    # reward scaling factor
+                       EXEC_MODE="train"
                 ):
+        
+        # Set parameter
+        self.df = df 
+        self.day = day
+        
+        # Set parameter
+        self.STOCK_DIM = STOCK_DIM
+        self.HMAX_NORMALIZE = HMAX_NORMALIZE
+        self.INITITAL_ACCOUNT_BALANCE = INITIAL_ACCOUNT_BALANCE
+        self.TRANSACTION_FEE_PERCENT = TRANSACTION_FEE_PERCENT
+        self.TUBULENCE_THRESHOLD = THUBULENCE_THRESHOLD
+        self.REWARD_SCALING = REWARD_SCALING
+        self.EXEC_MODE = EXEC_MODE
+
         # Set subclasses
         '''
         The continous action space is normalized between -1 and 1 and scaled as
@@ -72,36 +86,32 @@ class Environment(gym.Env):
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(181,))
         self.reward_range = (-np.inf, np.inf)
         
-        # Set header container
+        # Declare metadata container
         self.metadata = {
             "render/mode": []
         }
        
         # Initialize state 
-        self.setup()
+        _ = self.reset()
         
-        #https://github.com/openai/gym/blob/master/gym/utils/seeding.py
-        self.np_random, _ = seeding.np_random(seed)
+        # Get random number generator
+        # see: https://github.com/openai/gym/blob/master/gym/utils/seeding.py
+        self.rng, _ = seeding.np_random(seed)
 
-    def setup(self):
-        # memorize all the total balance change
-        self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
-        self.rewards_memory = []
+    def reset(self):
+        # Reset memorize all the total balance change
+        self.assetMemory = [self.INITIAL_ACCOUNT_BALANCE]
+        self.rewardMemory = []
         
-        #
-        self.bTerminal = False
-        self.df = df 
-        self.day = 0 #day
-        self.data = self.df.loc[self.day,:]
-            
-        # initialize reward
+        # Reset variables
         self.reward = 0
         self.turbulence = 0
         self.cost = 0
-        self.trades = 0
+        self.numTrade = 0
+        self.bTerminal = False
+        self.data = self.df.loc[self.day, :]
         
-        #initiate state
-        self.previous_state = list() #previous_state
+        # Reset state
         self.state = (
             [INITIAL_ACCOUNT_BALANCE] 
             + self.data.adjcp.values.tolist()
@@ -112,87 +122,39 @@ class Environment(gym.Env):
             + self.data.adx.values.tolist()
         )
 
-    def reset(self):
-        #
-        previous_total_asset = (
-            self.previous_state[0]
-            + sum(np.array(self.previous_state[1:(STOCK_DIM+1)]) 
-                  * np.array(self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-        )
-        self.asset_memory = [previous_total_asset]
-        self.rewards_memory = []
-
-        #
-        self.bTerminal = False
-        self.day = 0
-        self.data = self.df.loc[self.day,:]
-
-        # 
-        self.turbulence = 0
-        self.cost = 0
-        self.trades = 0
-
-        self.state = ( 
-            [self.previous_state[0]] 
-            + self.data.adjcp.values.tolist()
-            + self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]
-            + self.data.macd.values.tolist() 
-            + self.data.rsi.values.tolist()  
-            + self.data.cci.values.tolist()  
-            + self.data.adx.values.tolist()
-        )
-
         return self.state
 
-
     def _sell_stock(self, index, action):
+        if self.state[index+STOCK_DIM+1] <= 0:
+            pass
+        
         # perform sell action based on the sign of the action
-        if self.turbulence<self.turbulence_threshold and validation:
-            if self.state[index+STOCK_DIM+1] > 0:
-                #update balance
-                self.state[0] += \
-                self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-                 (1- TRANSACTION_FEE_PERCENT)
-                
-                self.state[index+STOCK_DIM+1] -= min(abs(action), self.state[index+STOCK_DIM+1])
-                self.cost +=self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-                 TRANSACTION_FEE_PERCENT
-                self.trades+=1
-            else:
-                pass
-        else:
-            # if turbulence goes over threshold, just clear out all positions 
-            if self.state[index+STOCK_DIM+1] > 0:
-                #update balance
-                self.state[0] += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
-                              (1- TRANSACTION_FEE_PERCENT)
-                self.state[index+STOCK_DIM+1] =0
-                self.cost += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
-                              TRANSACTION_FEE_PERCENT
-                self.trades+=1
-            else:
-                pass
-    
-        # ====> train
-        # perform sell action based on the sign of the action
-        if self.state[index+STOCK_DIM+1] > 0:
+        if (self.turbulence < self.TURBULENCE_THRESHOLD or 
+            self.EXEC_MODE == "train"):
             #update balance
             self.state[0] += \
             self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-             (1- TRANSACTION_FEE_PERCENT)
-
+                 (1- TRANSACTION_FEE_PERCENT)
+                
             self.state[index+STOCK_DIM+1] -= min(abs(action), self.state[index+STOCK_DIM+1])
             self.cost +=self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-             TRANSACTION_FEE_PERCENT
-            self.trades+=1
-        else:
-            pass
-
+                 TRANSACTION_FEE_PERCENT
+            self.numTrade+=1
+        else:    # if turbulence goes over threshold, just clear out all positions 
+            #update balance
+            self.state[0] += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
+                              (1- TRANSACTION_FEE_PERCENT)
+            self.state[index+STOCK_DIM+1] =0
+            self.cost += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
+                              TRANSACTION_FEE_PERCENT
+            self.numTrade+=1
+    
     def _buy_stock(self, index, action):
         # perform buy action based on the sign of the action
-        if self.turbulence< self.turbulence_threshold:
+        if (self.turbulence < self.TURBULENCE_THRESHOLD or 
+            self.EXEC_MODE == "train"):
+            # perform buy action based on the sign of the action
             available_amount = self.state[0] // self.state[index+1]
-            # print('available_amount:{}'.format(available_amount))
             
             #update balance
             self.state[0] -= self.state[index+1]*min(available_amount, action)* \
@@ -202,74 +164,36 @@ class Environment(gym.Env):
             
             self.cost+=self.state[index+1]*min(available_amount, action)* \
                               TRANSACTION_FEE_PERCENT
-            self.trades+=1
-        else:
-            # if turbulence goes over threshold, just stop buying
-            pass
+            self.numTrade+=1
 
-        # ====> train
-        # perform buy action based on the sign of the action
-        available_amount = self.state[0] // self.state[index+1]
-        # print('available_amount:{}'.format(available_amount))
-
-        #update balance
-        self.state[0] -= self.state[index+1]*min(available_amount, action)* \
-                          (1+ TRANSACTION_FEE_PERCENT)
-
-        self.state[index+STOCK_DIM+1] += min(available_amount, action)
-
-        self.cost+=self.state[index+1]*min(available_amount, action)* \
-                          TRANSACTION_FEE_PERCENT
-        self.trades+=1
         
     def step(self, actions):
-        # print(self.day)
-        self.terminal = self.day >= len(self.df.index.unique())-1
-        # print(actions)
+        self.bTerminal = self.day >= len(self.df.index.unique())-1
 
-        if self.terminal:
-            plt.plot(self.asset_memory,'r')
+        if self.bTerminal:
+            plt.plot(self.assetMemory,'r')
             plt.savefig('results/account_value_trade_{}_{}.png'.format(self.model_name, self.iteration))
             plt.close()
-            df_total_value = pd.DataFrame(self.asset_memory)
+            
+            df_total_value = pd.DataFrame(self.assetMemory)
             df_total_value.to_csv('results/account_value_trade_{}_{}.csv'.format(self.model_name, self.iteration))
             end_total_asset = self.state[0]+ \
             sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            if valid:
-                print("previous_total_asset:{}".format(self.asset_memory[0]))           
-
-                print("end_total_asset:{}".format(end_total_asset))
-                print("total_reward:{}".format(self.state[0]+sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))- self.asset_memory[0] ))
-                print("total_cost: ", self.cost)
-                print("total trades: ", self.trades)
-
+            
             df_total_value.columns = ['account_value']
             df_total_value['daily_return']=df_total_value.pct_change(1)
             sharpe = (4**0.5)*df_total_value['daily_return'].mean()/ \
                   df_total_value['daily_return'].std()
-            if valid:
-                print("Sharpe: ",sharpe)
             
-                df_rewards = pd.DataFrame(self.rewards_memory)
-                df_rewards.to_csv('results/account_rewards_trade_{}_{}.csv'.format(self.model_name, self.iteration))
-            
-            # print('total asset: {}'.format(self.state[0]+ sum(np.array(self.state[1:29])*np.array(self.state[29:]))))
-            #with open('obs.pkl', 'wb') as f:  
-            #    pickle.dump(self.state, f)
-            
-            return self.state, self.reward, self.terminal,{}
+            return self.state, self.reward, self.bTerminal,{}
 
         else:
-            # print(np.array(self.state[1:29]))
-
             actions = actions * HMAX_NORMALIZE
-            #actions = (actions.astype(int))
-            if self.turbulence>=self.turbulence_threshold :
+            if self.turbulence>=self.TURBULENCE_THRESHOLD :
                 actions=np.array([-HMAX_NORMALIZE]*STOCK_DIM)
                 
             begin_total_asset = self.state[0]+ \
             sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            #print("begin_total_asset:{}".format(begin_total_asset))
             
             argsort_actions = np.argsort(actions)
             
@@ -277,19 +201,16 @@ class Environment(gym.Env):
             buy_index = argsort_actions[::-1][:np.where(actions > 0)[0].shape[0]]
 
             for index in sell_index:
-                # print('take sell action'.format(actions[index]))
                 self._sell_stock(index, actions[index])
 
             for index in buy_index:
-                # print('take buy action: {}'.format(actions[index]))
                 self._buy_stock(index, actions[index])
 
             self.day += 1
             self.data = self.df.loc[self.day,:]         
             self.turbulence = self.data['turbulence'].values[0]
-            #print(self.turbulence)
+            
             #load next state
-            # print("stock_shares:{}".format(self.state[29:]))
             self.state =  [self.state[0]] + \
                     self.data.adjcp.values.tolist() + \
                     list(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]) + \
@@ -300,17 +221,13 @@ class Environment(gym.Env):
             
             end_total_asset = self.state[0]+ \
             sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            self.asset_memory.append(end_total_asset)
-            #print("end_total_asset:{}".format(end_total_asset))
+            self.assetMemory.append(end_total_asset)
             
             self.reward = end_total_asset - begin_total_asset            
-            # print("step_reward:{}".format(self.reward))
-            self.rewards_memory.append(self.reward)
-            
+            self.rewardMemory.append(self.reward)
             self.reward = self.reward*REWARD_SCALING
 
-
-        return self.state, self.reward, self.terminal, {}
+        return self.state, self.reward, self.bTerminal, {}
    
     
     def render(self, mode="human"):
@@ -373,8 +290,37 @@ class Framework(gym.Env):
     def step(self, action):
         return self.env.step(action)
 
-    def reset(self, seed: Optional[int] = None, **kwargs):
-        return self.env.reset(seed=seed, **kwargs)
+    #def reset(self, seed: Optional[int] = None, **kwargs):
+    #    return self.env.reset(seed=seed, **kwargs)
+    def reset(self):
+        # Previous total asset
+        self.assetMemory = [(
+            self.previous_state[0]
+            + sum(np.array(self.previous_state[1:STOCK_DIM+)])
+                  * np.array(self.previous_state[STOCK_DIM+1:2*STOCK_DIM+1]))
+        )]
+        self.rewardMemory = []
+
+        # Reset variable
+        self.day = 0
+        self.turbulence = 0
+        self.cost = 0
+        self.numTrade = 0
+        self.bTerminal = False
+        self.data = self.df.loc[self.day, :]
+
+        #$ Reset state
+        self.state = (
+            [self.previous_state[0]]
+            + self.data.adjcp.values.tolist()
+            + self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]
+            + self.data.macd.values.tolist()
+            + self.data.rsi.values.tolist()
+            + self.data.cci.values.tolist()
+            + self.data.adx.values.tolist()
+        )
+
+        return self.state
 
     def render(self, mode="human", **kwargs):
         return self.env.render(mode, **kwargs)
