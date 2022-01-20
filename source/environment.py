@@ -44,11 +44,10 @@ class Environment(gym.Env):
                        TRANSACTION_FEE_PERCENT=.0001,    # trasaction fee, e.g.) 0.1% resonable percentage
                        REWARD_SCALING=1.e-4,    # reward scaling factor
                 ):
-        
-        # Set parameter
-        self.df = df 
+        # Set data
+        self.df = df
         self.day = day
-        
+
         # Set parameter
         self.STOCK_DIM = STOCK_DIM
         self.OWNED_SHARE_INDICE = slice(STOCK_DIM+1, 2*STOCK_DIM+1)
@@ -83,7 +82,10 @@ class Environment(gym.Env):
         }
        
         # Initialize state 
-        _ = self.reset()
+        _ = self.reset(bFirstday)
+        if day != 0:    # Starting day is Not first day 
+            self.day = day
+            self.data = self.df.loc[self.day, :]
         
         # Get random number generator
         self.rng, _ = seeding.np_random(seed)
@@ -100,7 +102,7 @@ class Environment(gym.Env):
         
         # Reset data
         self.day = 0
-        self.data = self.df.loc[0, :]
+        self.data = self.df.loc[self.day, :]
         self.bTerminal = False
         
         # Reset state
@@ -281,61 +283,62 @@ class Framework(gym.Wrapper):
         
         # Define wrapping environment
         self.env = env
-
         self.previous_state = previous_state
         self.bInitial = bInitial
 
         # Set parameter
         self.STOCK_DIM = self.env.STOCK_DIM
         self.OWNED_SHARE_INDICE = self.env.OWNED_SHARE_INDICE
-        self.HMAX_NORMALIZE = self.env.HMAX_NORMALIZE
-        self.INITITAL_ACCOUNT_BALANCE = self.env.INITIAL_ACCOUNT_BALANCE
         self.TRANSACTION_FEE_PERCENT = self.env.TRANSACTION_FEE_PERCENT
-        self.REWARD_SCALING = self.env.REWARD_SCALING
         self.TURBULENCE_THRESHOLD = TURBULENCE_THRESHOLD
 
         # setter action_space, observation_space, reward_range, metadata, 
-        self.action_space = self.env.action_space None
+        self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
         self.reward_range = self.env.reward_range
                 
         # Declare metadata container
         self.metadata = self.env.metadata
-    
+   
     def reset(self, **kwargs):
         if self.bInitial:
+            # Initialize turbulence factor
+            self.turbulence = 0
+        
             return self.env.reset(**kwargs)
         else:
+            # Initialize turbulence factor
+            self.turbulence = 0
+        
             # Previous total asset
-            self.assetMemory = [(
+            self.env.assetMemory = [(
                 self.previous_state[0]
                 + sum(
                     np.array(self.previous_state[1:self.STOCK_DIM+1])
                     * np.array(self.previous_state[self.OWNED_SHARE_INDICE])
                 )
             )]
-            self.rewardMemory = []
+            self.env.rewardMemory = []
 
             # Reset variable
-            self.turbulence = 0
-            self.cost = 0
-            self.reward = 0
-            self.numTrade = 0
+            self.env.cost = 0
+            self.env.reward = 0
+            self.env.numTrade = 0
             
             # Reset data
-            self.day = 0
-            self.data = self.df.loc[self.day, :]
-            self.bTerminal = False
+            self.env.day = 0
+            self.env.data = self.df.loc[self.env.day, :]
+            self.env.bTerminal = False
 
             # Reset state
-            self.state = (
+            self.env.state = (
                 [self.previous_state[0]]
-                + self.data.adjcp.values.tolist()
-                + self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]
-                + self.data.macd.values.tolist()
-                + self.data.rsi.values.tolist()
-                + self.data.cci.values.tolist()
-                + self.data.adx.values.tolist()
+                + self.env.data.adjcp.values.tolist()
+                + self.previous_state[self.OWNED_SHARE_INDICE]
+                + self.env.data.macd.values.tolist()
+                + self.env.data.rsi.values.tolist()
+                + self.env.data.cci.values.tolist()
+                + self.env.data.adx.values.tolist()
             )
 
             return self.state
@@ -351,17 +354,17 @@ class Framework(gym.Wrapper):
             self.env._sellStock(index, action)
         else:    # if turbulence goes over threshold, just clear out all positions
             # update balance
-            self.state[0] += (
-                self.state[index+1]
-                * self.state[index+self.STOCK_DIM+1]
-                * (1- self.TRANSACTION_FEE_PERCENT)
+            self.env.state[0] += (
+                self.env.state[index+1]
+                * self.env.state[index+self.STOCK_DIM+1]
+                * (1 - self.TRANSACTION_FEE_PERCENT)
             )
                 
-            self.state[index+self.STOCK_DIM+1] = 0
+            self.env.state[index+self.STOCK_DIM+1] = 0
             
             self.cost += (
-                self.state[index+1]
-                * self.state[index+self.STOCK_DIM+1]
+                self.env.state[index+1]
+                * self.env.state[index+self.STOCK_DIM+1]
                 * self.TRANSACTION_FEE_PERCENT
             )
 
@@ -370,7 +373,7 @@ class Framework(gym.Wrapper):
 
     def step(self, action):
         if self.turbulence < self.TURBULENCE_THRESHOLD:
-            return self.env.step(action, bPanic=True)
+            return self.env.step(action)
         else:
             return self.env.step(action, bPanic=True)
 
