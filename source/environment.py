@@ -1,13 +1,8 @@
-import  os
-import  sys
-import  glob
-import  pickle
-
-import  pandas      as  pd
+import  pandas          as  pd
 
 import  numpy           as  np
-import  jax.numpy       as  jnp
-from    jax             import  grad, jit, vmap
+#import  jax.numpy       as  jnp
+#from    jax             import  grad, jit, vmap
 
 import  gym
 from    gym             import  spaces, error
@@ -42,15 +37,12 @@ class Environment(gym.Env):
         Set it if you want a narrower range.
         The methods are accessed publicly as "step", "reset", etc...
     '''
-    def __init__(self, df, 
-                       day=0,
+    def __init__(self, df, day=0,
                        STOCK_DIM=30,    # total number of stocks in our portfolio
                        HMAX_NORMALIZE=100,    # shares normalization factor, e.g.) 100 shares per trade
                        INITIAL_ACCOUNT_BALANCE=1000000,    # initial amount of money we have in our account
                        TRANSACTION_FEE_PERCENT=.0001,    # trasaction fee, e.g.) 0.1% resonable percentage
-                       TUBULENCE_THRESHOLD=140,    # turbulence index: 90-150 reasonable threshold
                        REWARD_SCALING=1.e-4,    # reward scaling factor
-                       EXEC_MODE="train"
                 ):
         
         # Set parameter
@@ -59,12 +51,11 @@ class Environment(gym.Env):
         
         # Set parameter
         self.STOCK_DIM = STOCK_DIM
+        self.OWNED_SHARE_INDICE = slice(STOCK_DIM+1, 2*STOCK_DIM+1)
         self.HMAX_NORMALIZE = HMAX_NORMALIZE
         self.INITITAL_ACCOUNT_BALANCE = INITIAL_ACCOUNT_BALANCE
         self.TRANSACTION_FEE_PERCENT = TRANSACTION_FEE_PERCENT
-        self.TUBULENCE_THRESHOLD = THUBULENCE_THRESHOLD
         self.REWARD_SCALING = REWARD_SCALING
-        self.EXEC_MODE = EXEC_MODE
 
         # Set subclasses
         '''
@@ -95,7 +86,6 @@ class Environment(gym.Env):
         _ = self.reset()
         
         # Get random number generator
-        # see: https://github.com/openai/gym/blob/master/gym/utils/seeding.py
         self.rng, _ = seeding.np_random(seed)
 
     def reset(self):
@@ -105,11 +95,13 @@ class Environment(gym.Env):
         
         # Reset variables
         self.reward = 0
-        self.turbulence = 0
         self.cost = 0
         self.numTrade = 0
+        
+        # Reset data
+        self.day = 0
+        self.data = self.df.loc[0, :]
         self.bTerminal = False
-        self.data = self.df.loc[self.day, :]
         
         # Reset state
         self.state = (
@@ -124,108 +116,113 @@ class Environment(gym.Env):
 
         return self.state
 
-    def _sell_stock(self, index, action):
-        if self.state[index+STOCK_DIM+1] <= 0:
-            pass
-        
-        # perform sell action based on the sign of the action
-        if (self.turbulence < self.TURBULENCE_THRESHOLD or 
-            self.EXEC_MODE == "train"):
-            #update balance
-            self.state[0] += \
-            self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-                 (1- TRANSACTION_FEE_PERCENT)
+    def _sellStock(self, index, action):
+        # update balance
+        self.state[0] += (
+            self.state[index+1]
+            * min(abs(action), self.state[index+self.STOCK_DIM+1]) 
+            * (1 - self.TRANSACTION_FEE_PERCENT)
+        )
                 
-            self.state[index+STOCK_DIM+1] -= min(abs(action), self.state[index+STOCK_DIM+1])
-            self.cost +=self.state[index+1]*min(abs(action),self.state[index+STOCK_DIM+1]) * \
-                 TRANSACTION_FEE_PERCENT
-            self.numTrade+=1
-        else:    # if turbulence goes over threshold, just clear out all positions 
-            #update balance
-            self.state[0] += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
-                              (1- TRANSACTION_FEE_PERCENT)
-            self.state[index+STOCK_DIM+1] =0
-            self.cost += self.state[index+1]*self.state[index+STOCK_DIM+1]* \
-                              TRANSACTION_FEE_PERCENT
-            self.numTrade+=1
+        self.state[index+self.STOCK_DIM+1] -= (
+            min(abs(action), self.state[index+self.STOCK_DIM+1])
+        )
+
+        self.cost += (
+            self.state[index+1]
+            * min(abs(action), self.state[index+self.STOCK_DIM+1]) 
+            * self.TRANSACTION_FEE_PERCENT
+        )
+
+        # Count trade
+        self.numTrade += 1
     
-    def _buy_stock(self, index, action):
+    def _buyStock(self, index, action):
         # perform buy action based on the sign of the action
-        if (self.turbulence < self.TURBULENCE_THRESHOLD or 
-            self.EXEC_MODE == "train"):
-            # perform buy action based on the sign of the action
-            available_amount = self.state[0] // self.state[index+1]
+        available_amount = self.state[0] // self.state[index+1]
             
-            #update balance
-            self.state[0] -= self.state[index+1]*min(available_amount, action)* \
-                              (1+ TRANSACTION_FEE_PERCENT)
+        #update balance
+        self.state[0] -= (
+            self.state[index+1]
+            * min(available_amount, action)
+            * (1 + self.TRANSACTION_FEE_PERCENT)
+        )
 
-            self.state[index+STOCK_DIM+1] += min(available_amount, action)
-            
-            self.cost+=self.state[index+1]*min(available_amount, action)* \
-                              TRANSACTION_FEE_PERCENT
-            self.numTrade+=1
+        self.state[index+self.STOCK_DIM+1] += (
+            min(available_amount, action)
+        )
 
-        
-    def step(self, actions):
+        self.cost += (
+            self.state[index+1]
+            * min(available_amount, action)
+            * self.TRANSACTION_FEE_PERCENT
+        )
+
+        # Count trade
+        self.numTrade+=1
+
+    def step(self, actions, bPanic=False):
+        #
         self.bTerminal = self.day >= len(self.df.index.unique())-1
 
         if self.bTerminal:
-            plt.plot(self.assetMemory,'r')
-            plt.savefig('results/account_value_trade_{}_{}.png'.format(self.model_name, self.iteration))
-            plt.close()
-            
-            df_total_value = pd.DataFrame(self.assetMemory)
-            df_total_value.to_csv('results/account_value_trade_{}_{}.csv'.format(self.model_name, self.iteration))
-            end_total_asset = self.state[0]+ \
-            sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            
-            df_total_value.columns = ['account_value']
-            df_total_value['daily_return']=df_total_value.pct_change(1)
+            #### Add terminal returns (call render)
+            ''' 
+            df_total_value = pd.DataFrame(self.asset_memory)
+            df_total_value['daily_return']= df_total_value.pct_change(1)
             sharpe = (4**0.5)*df_total_value['daily_return'].mean()/ \
                   df_total_value['daily_return'].std()
-            
-            return self.state, self.reward, self.bTerminal,{}
-
+            '''
+            return self.state, self.reward, self.bTerminal, {}
+    
+        if bPanic:
+            actions = np.array([-self.HMAX_NORMALIZE] * self.STOCK_DIM)
         else:
-            actions = actions * HMAX_NORMALIZE
-            if self.turbulence>=self.TURBULENCE_THRESHOLD :
-                actions=np.array([-HMAX_NORMALIZE]*STOCK_DIM)
-                
-            begin_total_asset = self.state[0]+ \
-            sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            
-            argsort_actions = np.argsort(actions)
-            
-            sell_index = argsort_actions[:np.where(actions < 0)[0].shape[0]]
-            buy_index = argsort_actions[::-1][:np.where(actions > 0)[0].shape[0]]
+            actions = actions * self.HMAX_NORMALIZE
 
-            for index in sell_index:
-                self._sell_stock(index, actions[index])
+        begin_total_asset = (
+            self.state[0]
+            + sum(
+                np.array(self.state[1:self.STOCK_DIM+1])
+                * np.array(self.state[self.OWNED_SHARE_INDICE)]
+            )
+        )
 
-            for index in buy_index:
-                self._buy_stock(index, actions[index])
+        # Do trading
+        for action in actions:
+            if action < 0 and self.state[index+self.STOCK_DIM+1] > 0:
+                self._sellStock(index, action)
+            elif action > 0:
+                self._buyStock(index, action)
 
-            self.day += 1
-            self.data = self.df.loc[self.day,:]         
-            self.turbulence = self.data['turbulence'].values[0]
+        #
+        self.day += 1
+        self.data = self.df.loc[self.day,:]         
+        self.turbulence = self.data['turbulence'].values[0]
             
-            #load next state
-            self.state =  [self.state[0]] + \
-                    self.data.adjcp.values.tolist() + \
-                    list(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]) + \
-                    self.data.macd.values.tolist() + \
-                    self.data.rsi.values.tolist() + \
-                    self.data.cci.values.tolist() + \
-                    self.data.adx.values.tolist()
+        # load next state
+        self.state = (
+            [self.state[0]] 
+            + self.data.adjcp.values.tolist()
+            + list(self.state[self.OWNED_SHARE_INDICE])
+            + self.data.macd.values.tolist()
+            + self.data.rsi.values.tolist()
+            + self.data.cci.values.tolist()
+            + self.data.adx.values.tolist()
+        )
+
+        end_total_asset = (
+            self.state[0]
+            + sum(
+                np.array(self.state[1:self.STOCK_DIM+1])
+                * np.array(self.state[self.OWNED_SHARE_INDICE])
+            )
+        )
+        self.assetMemory.append(end_total_asset)
             
-            end_total_asset = self.state[0]+ \
-            sum(np.array(self.state[1:(STOCK_DIM+1)])*np.array(self.state[(STOCK_DIM+1):(STOCK_DIM*2+1)]))
-            self.assetMemory.append(end_total_asset)
-            
-            self.reward = end_total_asset - begin_total_asset            
-            self.rewardMemory.append(self.reward)
-            self.reward = self.reward*REWARD_SCALING
+        self.reward = end_total_asset - begin_total_asset            
+        self.rewardMemory.append(self.reward)
+        self.reward = self.reward * self.REWARD_SCALING
 
         return self.state, self.reward, self.bTerminal, {}
    
@@ -265,65 +262,117 @@ class Environment(gym.Env):
                 else:
                     super(MyEnv, self).render(mode=mode) # just raise an exception
         '''
+        pass
         
-        return self.state
 
-
-class Framework(gym.Env):
+class Framework(gym.Wrapper):
     ''' Wraps the environment to allow a modular transformation.
     
         This class is the base class for all wrappers. 
         The subclass could override some methods to change the behavior of 
         the original environment without touching the original code.
     '''
-    def __init__(self, env):
+    def __init__(self, env, 
+                       previous_state=list(), 
+                       bInitial=True,
+                       TURBULENCE_THRESHOLD=140,    # turbulence index: 90-150 reasonable threshold
+                ):
         super(Framework, self).__init__()
         
+        # Define wrapping environment
         self.env = env
 
+        self.previous_state = previous_state
+        self.bInitial = bInitial
+
+        # Set parameter
+        self.STOCK_DIM = self.env.STOCK_DIM
+        self.OWNED_SHARE_INDICE = self.env.OWNED_SHARE_INDICE
+        self.HMAX_NORMALIZE = self.env.HMAX_NORMALIZE
+        self.INITITAL_ACCOUNT_BALANCE = self.env.INITIAL_ACCOUNT_BALANCE
+        self.TRANSACTION_FEE_PERCENT = self.env.TRANSACTION_FEE_PERCENT
+        self.REWARD_SCALING = self.env.REWARD_SCALING
+        self.TURBULENCE_THRESHOLD = TURBULENCE_THRESHOLD
+
         # setter action_space, observation_space, reward_range, metadata, 
-        self._action_space = None
-        self._observation_space = None
-        self._reward_range = None
-        self._metadata = None
+        self.action_space = self.env.action_space None
+        self.observation_space = self.env.observation_space
+        self.reward_range = self.env.reward_range
+                
+        # Declare metadata container
+        self.metadata = self.env.metadata
     
+    def reset(self, **kwargs):
+        if self.bInitial:
+            return self.env.reset(**kwargs)
+        else:
+            # Previous total asset
+            self.assetMemory = [(
+                self.previous_state[0]
+                + sum(
+                    np.array(self.previous_state[1:self.STOCK_DIM+1])
+                    * np.array(self.previous_state[self.OWNED_SHARE_INDICE])
+                )
+            )]
+            self.rewardMemory = []
+
+            # Reset variable
+            self.turbulence = 0
+            self.cost = 0
+            self.reward = 0
+            self.numTrade = 0
+            
+            # Reset data
+            self.day = 0
+            self.data = self.df.loc[self.day, :]
+            self.bTerminal = False
+
+            # Reset state
+            self.state = (
+                [self.previous_state[0]]
+                + self.data.adjcp.values.tolist()
+                + self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]
+                + self.data.macd.values.tolist()
+                + self.data.rsi.values.tolist()
+                + self.data.cci.values.tolist()
+                + self.data.adx.values.tolist()
+            )
+
+            return self.state
+    
+    def _buyStock(self, index, action):
+        if self.turbulence < self.TURBULENCE_THRESHOLD:
+            self.env._buyStock(index, action)
+        else:
+            pass
+
+    def _sellStock(self, index, action):
+        if self.turbulence < self.TURBULENCE_THRESHOLD:
+            self.env._sellStock(index, action)
+        else:    # if turbulence goes over threshold, just clear out all positions
+            # update balance
+            self.state[0] += (
+                self.state[index+1]
+                * self.state[index+self.STOCK_DIM+1]
+                * (1- self.TRANSACTION_FEE_PERCENT)
+            )
+                
+            self.state[index+self.STOCK_DIM+1] = 0
+            
+            self.cost += (
+                self.state[index+1]
+                * self.state[index+self.STOCK_DIM+1]
+                * self.TRANSACTION_FEE_PERCENT
+            )
+
+            # Count trading
+            self.numTrade += 1
+
     def step(self, action):
-        return self.env.step(action)
-
-    #def reset(self, seed: Optional[int] = None, **kwargs):
-    #    return self.env.reset(seed=seed, **kwargs)
-    def reset(self):
-        # Previous total asset
-        self.assetMemory = [(
-            self.previous_state[0]
-            + sum(np.array(self.previous_state[1:STOCK_DIM+)])
-                  * np.array(self.previous_state[STOCK_DIM+1:2*STOCK_DIM+1]))
-        )]
-        self.rewardMemory = []
-
-        # Reset variable
-        self.day = 0
-        self.turbulence = 0
-        self.cost = 0
-        self.numTrade = 0
-        self.bTerminal = False
-        self.data = self.df.loc[self.day, :]
-
-        #$ Reset state
-        self.state = (
-            [self.previous_state[0]]
-            + self.data.adjcp.values.tolist()
-            + self.previous_state[(STOCK_DIM+1):(STOCK_DIM*2+1)]
-            + self.data.macd.values.tolist()
-            + self.data.rsi.values.tolist()
-            + self.data.cci.values.tolist()
-            + self.data.adx.values.tolist()
-        )
-
-        return self.state
+        if self.turbulence < self.TURBULENCE_THRESHOLD:
+            return self.env.step(action, bPanic=True)
+        else:
+            return self.env.step(action, bPanic=True)
 
     def render(self, mode="human", **kwargs):
         return self.env.render(mode, **kwargs)
-
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        return self.env.compute_reward(achieved_goal, desired_goal, info)
