@@ -49,7 +49,7 @@ def convertAdjustedToOHLCV(df):
 
     # Fill non-zero daily adjustment factor
     x["ajexdi"] = x["adjexdi"].apply(
-        lambda: index: 1 if index == 0 else index
+        lambda index: 1 if index == 0 else index
     )
 
     # Convert values
@@ -76,7 +76,7 @@ def convertOHLCVToAdjusted(df):
 
     # Fill non-zero daily adjustment factor
     x["ajexdi"] = x["adjexdi"].apply(
-        lambda: index: 1 if index == 0 else index
+        lambda index: 1 if index == 0 else index
     )
 
     # Convert values
@@ -254,7 +254,7 @@ def calculate_turbulence(self, data, start=252):
 
 class Preprocessor(object):
     def __init__(self, TECHNICAL_INDICATOR_LIST=list(),
-                       USER_DEFINED_FEATURES=dict() 
+                       USER_DEFINED_FEATURES=dict(), 
                        bUseTechnicalIndicator=True,
                        bUseVolatilityIndex=True,
                        bUseTurbulenceIndex=True,
@@ -305,7 +305,7 @@ class Preprocessor(object):
             df = addTurbulenceIndex(df)
 
         # Add user defined feature
-        print("Append user-defined-feature"
+        print("Append user-defined-feature")
         if self.bUseUserDefinedFeature:
             df = addUserDefinedFeature(
                 df, features=self.USER_DEFINED_FEATURES
