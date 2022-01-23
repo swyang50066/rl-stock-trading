@@ -45,19 +45,20 @@ def getConfig(obj, EXEC_MODE):
     return DEFAULT_CONFIG_FEATURES
 
 
-def setConfig(EXEC_MODE="train"):
+def setConfig(EXEC_MODE="train", 
+              CONFIG_FILE_NAME="train_config.json"
+             ):
     ''' Parsing configuration file (.json), one sets model environment
     '''
     # Set path of configuration file
-    JSON_HOME_PATH = (
+    JSON_FILE_PATH = (
         os.path.dirname(os.path.realpath(__file__))
-    if EXEC_MODE == "train":
-        path = JSON_HOME_PATH + "/train_config.json"
-    elif EXEC_MODE == "test":
-        path = JSON_HOME_PATH + "/test_config.json"
+        + "/config/"
+        + CONFIG_FILE_NAME
+    )
     
     # Parse configuration from .json
-    with open(path) as f:
+    with open(JSON_FILE_PATH) as f:
         obj = json.load(f)
 
     # Update configuration
