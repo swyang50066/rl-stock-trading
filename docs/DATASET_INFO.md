@@ -32,6 +32,3 @@ dataframe_columns = [
   * cci: commodity channel index
   * adx: average directional index
   * turbulence: financial turbulence index
-
-* A 
- 
