@@ -1,4 +1,4 @@
-# Multi-Agent Reinforcement Learning Based Auto-Stock Trading System with Pytorch and Gym
+# Multi-Agent Reinforcement Learning Based Auto-Stock Trading System (w/ Pytorch and Gym API)
 
 ## 1. Introduction
 This repository is for building auto-stock trading system that follows a policy trained with numerical scheme of multi-agent deep reinforcement learning.
@@ -13,8 +13,6 @@ Currently, the source code of the project is under maintenance but I'm trying to
 requirements = { 
     numpy>=1.19.0,
     pandas>=0.25.0,
-    tensorflow>=2.6.0,
-    tensorflow-gpu>=2.6.0,
     gym,
     jax,
 }
