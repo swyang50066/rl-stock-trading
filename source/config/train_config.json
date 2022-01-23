@@ -1,18 +1,32 @@
 {
-    "portfolio": {
-        "ticker_list": [
-            "AAPL", "SPY"
-        ]
-    },
-    "io_config": {
+    "io_path_config": {
         "input_folder_path": "",
         "output_folder_path": ""
     },
-    "gpu_config": {
+    "gpu_env_config": {
         "b_use_gpu": false, 
         "num_gpu": 1,
         "usage_gpu_list": [
            0
         ]
+    },
+    "dataset_config": {
+        "dataset_file_name": "dow30_2009_to_2020.csv",
+        "b_use_technical_indicator": true,
+        "b_use_volatility_index": true,
+        "b_use_turbulence_index": true,
+        "b_use_user_defined_index": true 
+    },
+    "portfolio": {
+        "ticker_list": [
+            "AAPL", "SPY"
+        ]
+    },
+    "stock_market_config": {
+        "max_num_stock_hold": 30,
+        "max_normalized_share_size": 100,
+        "initial_account_balance": 1000000,
+        "transcation_fee_percent": 0.0001,
+        "reward_scaling": 0.0001
     }
 }
