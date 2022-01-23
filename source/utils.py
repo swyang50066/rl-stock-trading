@@ -5,12 +5,40 @@ from    collections     import  defaultdict
 
 ## Features
 CONFIG_TRAIN_IO_FEATURES = {
+    "input_folder_path": "./"
+    "output_folder_path": "./",
+}
+CONFIG_GPU_ENVIRONMENT_FEATURES = {
+    "b_use_gpu": True,
+    "num_gpu": 1,
+    "usage_gpu_list": [0],
+}
+CONFIG_DATASET_FEATURES = {
+    "dataset_file_name": "dow30_2009_to_2020.csv",
+    "b_use_technical_indicator": True,
+    "b_use_volatility_index": True,
+    "b_use_turbulence_index": True,
+    "b_use_user_defined_index": True,
+}
+CONFIG_PORTFOLIO_FEATURES = {
     "ticker_list": [
         "AAPL"
     ],
 }
+CONFIG_STOCK_MARKET_FEATURES = {
+    "max_num_stock_hold": 30,
+    "max_normalized_share_size": 100,
+    "initial_account_balance": 1000000,
+    "transcation_fee_percent": 0.0001,
+    "reward_scaling": 0.0001.
+}
+
 DEFAULT_TRAIN_CONFIG_FEATURES = defaultdict(bool, {
     **CONFIG_TRAIN_IO_FEATURES,
+    **CONFIG_GPU_ENVIRONMENT_FEATURES,
+    **CONFIG_DATA_SET_FEATURES,
+    **CONFIG_PORTFOLIO_FEATURES,
+    **CONFIG_STOCK_MARKET_FEATURES,
 })
 
 

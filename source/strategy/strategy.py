@@ -4,5 +4,6 @@ import  tensorflow  as  tf
 
 
 class A2C(object):
-    pass
+    def __init__(self):
+        pass
 

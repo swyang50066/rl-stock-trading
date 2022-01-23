@@ -277,12 +277,18 @@ class Preprocessor(object):
         self.bUseTurbulenceIndex = bUseTurbulenceIndex
         self.bUseUserDefinedIndex = bUseUserDefinedIndex
 
-    def load(self):
+    def load(self, DATASET_FILE_NAME="dow30_2009_to_2020.csv"):
         ''' Load financial dataset
         '''
-        #df = pd.DataFrame(filename)
-        #return df
-        pass
+        # ====> Update Yahoo Finance dataset loader
+        # Set path of data csv file
+        CSV_FILE_PATH = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "../assets/"
+            + DATASET_FILE_NAME
+        )
+
+        return pd.DataFrame(CSV_FILE_PATH)
 
     def apply(self, df):
         ''' Apply preprocessing
