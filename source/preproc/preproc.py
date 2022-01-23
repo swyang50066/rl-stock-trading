@@ -193,7 +193,7 @@ def addTurbulenceIndex(df):
     return x
 
 
-def calculate_turbulence(self, data, start=252):
+def calcTurbulenceIndex(self, data, start=252):
     ''' Calculate financial turbulence index
         
         (Consider after a year, default: start=252)
