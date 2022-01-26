@@ -92,8 +92,8 @@ class Environment(gym.Env):
 
     def reset(self):
         # Reset memorize all the total balance change
-        self.assetMemory = [self.INITIAL_ACCOUNT_BALANCE]
-        self.rewardMemory = []
+        self.assetHistory = [self.INITIAL_ACCOUNT_BALANCE]
+        self.rewardHistory = []
         
         # Reset variables
         self.reward = 0
@@ -177,7 +177,7 @@ class Environment(gym.Env):
             '''
             return self.state, self.reward, self.bTerminal, {}
     
-        if bPanic:
+        if bPanic:    # Over the threshold of turbulence index, do panic sell
             actions = np.array([-self.HMAX_NORMALIZE] * self.STOCK_DIM)
         else:
             actions = actions * self.HMAX_NORMALIZE
@@ -220,10 +220,10 @@ class Environment(gym.Env):
                 * np.array(self.state[self.OWNED_SHARE_INDICE])
             )
         )
-        self.assetMemory.append(end_total_asset)
+        self.assetHistory.append(end_total_asset)
             
         self.reward = end_total_asset - begin_total_asset            
-        self.rewardMemory.append(self.reward)
+        self.rewardHistory.append(self.reward)
         self.reward = self.reward * self.REWARD_SCALING
 
         return self.state, self.reward, self.bTerminal, {}
@@ -311,14 +311,14 @@ class Framework(gym.Wrapper):
             self.turbulence = 0
         
             # Previous total asset
-            self.env.assetMemory = [(
+            self.env.assetHistory = [(
                 self.previous_state[0]
                 + sum(
                     np.array(self.previous_state[1:self.STOCK_DIM+1])
                     * np.array(self.previous_state[self.OWNED_SHARE_INDICE])
                 )
             )]
-            self.env.rewardMemory = []
+            self.env.rewardHistory = []
 
             # Reset variable
             self.env.cost = 0
