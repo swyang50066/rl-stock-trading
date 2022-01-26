@@ -13,3 +13,4 @@ class Agent(object):
 
     def trade(self):
         pass
+
