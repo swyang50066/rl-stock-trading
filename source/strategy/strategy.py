@@ -1,34 +1,52 @@
-from    strategy.DDPG       import  DDPG
-from    strategy.A2C        import  A2C
-from    strategy.A3C        import  A3C
-from    strategy.TD3        import  TD3
-from    strategy.PPO        import  PPO
-from    strategy.SAC        import  SAC
-from    strategy.TRPO       import  TRPO
+from    strategy.a2c        import  A2C
 
 
-class Strategy(object):
+class TrainStrategy(object):
     def __init__(self):
         pass
 
-    def getLossFunction(self):
-        pass
+    def _getLossFunction(self, LOSS_FUNC_TYPE):
+        ''' Get loss function
+        '''
+        return setLossFunction(LOSS_FUNC_TYPE)
 
-    def getMetricBundle(self):
-        pass
+    def _getMetricBundle(self, METRIC_BUNDLE_LIST):
+        ''' Get a list of metric functions
+        '''
+        return setMetricBundle(METRIC_BUNDLE_LIST)
 
-    def getCallbackBundle(self):
-        pass
+    def _getCallbackBundle(self, CALLBACK_BUNDLE_LIST):
+        ''' Get a list of callbacks
+        '''
+        return setCallbackBundle(CALLBACK_BUNDLE_LIST)
 
-    def getNetworkModel(self):
-        pass
-
+    def _getRLAlgorithm(self, RL_ALGORITHM_TYPE):
+        pass setRLAlgorithm(RL_ALGORITHM_TYPE)
+    
     def compile(self):
+        ''' Compile network model
+        '''
         pass
 
     def evolve(self):
+        ''' Execute one-step training
+        '''
         pass
 
     def transfer(self):
+        ''' Copy model weights 
+        '''
         pass
+
+
+class TradeStrategy(object):
+    def __init__(self):
+        pass
+
+    def build(self):
+        pass
+
+    def Trade(self):
+        pass
+
 
