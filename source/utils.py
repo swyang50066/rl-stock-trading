@@ -42,7 +42,14 @@ DEFAULT_TRAIN_CONFIG_FEATURES = defaultdict(bool, {
 })
 
 
-def decoder(obj):
+def _updater(key, value):
+    ''' Update value of default dictionary
+    '''
+    # ====> Some condition to verify value
+    return value
+
+
+def _decoder(obj):
     ''' decode object recursively
     '''
     for key, value in obj.items():
@@ -53,43 +60,32 @@ def decoder(obj):
             yield (key,value)
 
 
-def getConfig(obj, EXEC_MODE):
-    def _update(key, value):
-        ''' Update value of default dictionary
-        '''
-        # ====> Some condition to verify value
-        return value
-
-    # Build feature dictionary
-    DEFAULT_CONFIG_FEATURES = (
-        DEFAULT_TRAIN_CONFIG_FEATURES if EXEC_MODE == "train"
-        else DEFAULT_TEST_CONFIG_FEATURES
-    )     
-
-    # Build data base info dictionary
-    for key, value in decoder(obj):
-        DEFAULT_CONFIG_FEATURES[key] = _update(key, value)
-   
-    return DEFAULT_CONFIG_FEATURES
-
-
-def setConfig(EXEC_MODE="train", 
-              CONFIG_FILE_NAME="train_config.json"
-             ):
+def set_config(EXEC_MODE="train", 
+               CONFIG_FILE_NAME="train_config.json"
+              ):
     ''' Parsing configuration file (.json), one sets model environment
     '''
     # Set path of configuration file
-    JSON_FILE_PATH = (
+    json_file_path = (
         os.path.dirname(os.path.realpath(__file__))
         + "/config/"
         + CONFIG_FILE_NAME
     )
     
     # Parse configuration from .json
-    with open(JSON_FILE_PATH) as f:
+    with open(json_file_path) as f:
         obj = json.load(f)
 
-    # Update configuration
-    config = getConfig(obj, EXEC_MODE)
 
-    return config
+    # Build feature dictionary
+    config_features = (
+        DEFAULT_TRAIN_CONFIG_FEATURES if mode == "train"
+        else DEFAULT_TEST_CONFIG_FEATURES
+    )
+
+    # Build data base info dictionary
+    for key, value in _decoder(obj):
+        config_features[key] = _update(key, value)
+
+    return config_features
+
