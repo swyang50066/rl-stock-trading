@@ -6,16 +6,29 @@ import  numpy   as  np
 class Agent(ABC):
     ''' Superclass including abstract methods required for RL agent
     '''
-    def __init__(self, INPUT_DIM=1, 
-                       OUTPUT_DIM=1, 
-                       INIT_LERANING_RATE=1.e-5
-                ) -> None:
-        # I/O dimensionalities
-        self.INPUT_DIM = INPUT_DIM
-        self.OUTPUT_DIM = OUTPUT_DIM
+    @abstractmethod
+    def build(self):
+        ''' Build network model
+        '''
+        pass
+    
+    @abstrctmethod
+    def set_loss_function(self):
+        ''' Set loss function
+        '''
+        pass
 
-        # Init learning rate
-        self.INIT_LERANING_RATE = INIT_LEARNING_RATE
+    @abstractmethod
+    def set_optimizer(self):
+        ''' Set optimizer
+        '''
+        pass
+
+    @abstractmethod
+    def set_callback(self):
+        ''' Set callback
+        '''
+        pass
 
     @abstractmethod
     def compile(self):
@@ -24,28 +37,8 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def transfer(self):
-        ''' Transfer model weights to competitive one
-            
-            e.g.) from model_a to model_b
-                model_b.set_weights(model_a.get_weights())
-        '''
-        pass
-
-    @abstractmethod
-    def evolve(self, x, y):
-        ''' Train model for a iteration 
-        
-            e.g.) Return below
-                self.model.fit(self.reshape(x), y, epochs=1, verbose=0)
-        '''
-        pass
-
-    def trade(self, x):
-        ''' Prediction for critic value
-        
-            e.g.) Return below
-                self.model.predict(self.reshape(x))
+    def evolve(self, transitions):
+        ''' Evolve model for a iteration
         '''
         pass
 
@@ -60,6 +53,11 @@ class Axuiliary(object)
             return np.expand_dims(x, axis=0)
         else: 
             return x
+    
+    def transfer(self, model_a, model_b):
+        ''' Transfer model_a weights to model_b
+        '''
+        model_b.set_weights(model_a.get_weights())
 
     def save_weight(self, model, path, filename):
         ''' Save model weights
@@ -71,23 +69,83 @@ class Axuiliary(object)
         '''
         model.load_weights(path + filename)
 
+        pass
+
 
 class Strategy(Axuiliary):
-    ''' Strategy superclass for training and testing policy of RL agent
+    ''' Strategy superclass for q-value based algorithms
     '''
-    def __init__(self):
+    def __init__(self, ENV_DIM,
+                       ACTION_DIM,
+                       NUM_FRAME=4,
+                       GAMMA=.99,
+                       INIT_LEARNING_RATE=1.e-4,
+                       NUM_EPISODE=5000,
+                ) -> None:
+        # Agent class
         self._agent = None
+
+        # Environment and  Model parameters
+        self.ACTION_DIM = ACTION_DIM
+        self.ENV_DIM = (NUM_FRAME,) + ENV_DIM
+        self.GAMMA = GAMMA
+        self.INIT_LEARNING_RATE = INIT_LEARNING_RATE
+        self.NUM_EPISODE = NUM_EPISODE
 
     @property
     def agent(self):
         return self._agent
 
-    @agent.setter
-    def strategy(self, Iagent):
-        self._strategy = Iagent()
+    @actor.setter
+    def agent(self, Iagent):
+        self._agent = Iagent
 
-    def evolve(self, x, y):
-        return self._agent.evolve(x, y)
+    def evolve(self, transitions):
+        ''' Train model for a iteration
+        '''
+        self._agent.evolve(transitions)
 
-    def trade(self, x):
-        return self._agent.trade(x)
+
+
+class ActorCriticStrategy(Axuiliary):
+    ''' Strategy superclass for actor-critic based algorithms 
+    '''
+    def __init__(self, ENV_DIM,
+                       ACTION_DIM,
+                       NUM_FRAME=4,
+                       GAMMA=.99,
+                       INIT_LEARNING_RATE=1.e-4,
+                       NUM_EPISODE=5000,
+                ) -> None:
+        # Agent class
+        self._agent = None
+
+        # Environment and  Model parameters
+        self.ACTION_DIM = ACTION_DIM
+        self.ENV_DIM = (NUM_FRAME,) + ENV_DIM
+        self.GAMMA = GAMMA
+        self.INIT_LEARNING_RATE = INIT_LEARNING_RATE
+        self.NUM_EPISODE = NUM_EPISODE
+
+    @property
+    def actor(self):
+        return self._actor
+
+    @actor.setter
+    def actor(self, Iactor):
+        self._actor = Iactor
+
+    @property
+    def critic(self):
+        return self._critic
+
+    @critic.setter
+    def critic(self, Icritic):
+        self._critic = Icritic
+
+    def evolve(self, transitions):
+        ''' Train model for a iteration
+        '''
+        self._actor.evolve(transitions)
+        self._critic.evolve(transitions)
+
