@@ -4,6 +4,7 @@
 This repository is for introducing stock trading algorithm of multi-agent that follows a policy trained under deep reinforcement learning. 
 
 The algorithm is accelerated and parallelized by using `Pytorch` and `JAX` libraries, and environment is built following `GYM` API.
+
 Unfortunately, the repository is currently under maintenance, but the alpha version is going to be released as soon as possible!
 
 
