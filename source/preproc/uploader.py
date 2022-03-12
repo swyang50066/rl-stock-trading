@@ -12,20 +12,20 @@ class Uploader(object):
         self.tickers = tickers
         self.proxy = proxy
 
-    def selectEqualElementStock(self, df):
+    def select_equal_element_stock(self, df):
         ''' Filter data frame to be listed with tickers 
             that have identical number of elements 
         '''
         # Count number of tickers in the data frame
-        countSeries = df.tic.value_counts()
-        countSeries = pd.DataFrame(
-            {"tic": countSeries.index, "counts": countSeries.values}
+        series = df.tic.value_counts()
+        series = pd.DataFrame(
+            {"tic": series.index, "counts": series.values}
         )
         
         # Filter ticker list has equal number of elements
-        equals = list(countSeries.counts >= countSeries.counts.mean())
+        equals = list(series.counts >= series.counts.mean())
         
-        return df[df.tic.isin(countSeries.tic[equals])]
+        return df[df.tic.isin(series.tic[equals])]
 
     def fetch(self):
         ''' Fetch stock data from Yahoo API
@@ -37,18 +37,16 @@ class Uploader(object):
         # Download and save the data in the data frame
         for ticker in self.tickers:
             # Get stock data
-            temp = yf.download(
-                ticker, 
-                start=self.start, end=self.end, 
-                proxy=self.proxy
+            tmp = yf.download(
+                ticker, start=self.start, end=self.end, proxy=self.proxy
             )
-            temp["tic"] = ticker
+            tmp["tic"] = ticker
      
             # Reset the index to use integers as index instead of dates
-            temp = temp.reset_index()
+            tmp = tmp.reset_index()
       
             # Convert the column names to standardized names
-            temp.columns = [
+            tmp.columns = [
                 "date", 
                 "open", "high", "low", "close", "adjcp", 
                 "volume", 
@@ -56,30 +54,30 @@ class Uploader(object):
             ]
             
             # Create day of the week column (monday = 0)
-            temp["day"] = temp["date"].dt.dayofweek
+            tmp["day"] = tmp["date"].dt.dayofweek
         
             # Convert date to standard string format, easy to filter
-            temp["date"] = temp.date.apply(
+            tmp["date"] = tmp.date.apply(
                 lambda item: item.strftime("%Y-%m-%d")
             )
         
             # Use adjusted close price instead of close price
             # so drop the adjusted close price column
-            temp = temp.drop(labels="close", axis=1)
+            tmp = tmp.drop(labels="close", axis=1)
             
             # Rearrange columns 
-            temp = temp[[
+            tmp = tmp[[
                 "date", "tic", 
                 "open", "high", "low", "adjcp", 
                 "volume",
             ]]
         
             # Sort items
-            temp = temp.sort_values(by=["date", "tic"])
-            temp = temp.reset_index(drop=True)
+            tmp = tmp.sort_values(by=["date", "tic"])
+            tmp = tmp.reset_index(drop=True)
 
             # Append to data frame
-            df = df.append(temp)
+            df = df.append(tmp)
         
         # Drop missing data
         df = df.dropna()

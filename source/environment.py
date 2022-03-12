@@ -37,16 +37,18 @@ class Environment(gym.Env):
         Set it if you want a narrower range.
         The methods are accessed publicly as "step", "reset", etc...
     '''
-    def __init__(self, df, day=0,
-                       STOCK_DIM=30,    # total number of stocks in our portfolio
-                       HMAX_NORMALIZE=100,    # shares normalization factor, e.g.) 100 shares per trade
-                       INITIAL_ACCOUNT_BALANCE=1000000,    # initial amount of money we have in our account
-                       TRANSACTION_FEE_PERCENT=.0001,    # trasaction fee, e.g.) 0.1% resonable percentage
-                       REWARD_SCALING=1.e-4,    # reward scaling factor
+    def __init__(self, df,
+                       current_day=0,
+                       b_start_day=True,
+                       STOCK_DIM=30,                    # total number of stocks in our portfolio
+                       HMAX_NORMALIZE=100,              # shares normalization factor, e.g.) 100 shares per trade
+                       INITIAL_ACCOUNT_BALANCE=1000000, # initial amount of money we have in our account
+                       TRANSACTION_FEE_PERCENT=.0001,   # trasaction fee, e.g.) 0.1% resonable percentage
+                       REWARD_SCALE=1.e-4,            # reward scaling factor
                 ):
         # Set data
         self.df = df
-        self.day = day
+        self.current_day = current_day
 
         # Set parameter
         self.STOCK_DIM = STOCK_DIM
@@ -54,9 +56,8 @@ class Environment(gym.Env):
         self.HMAX_NORMALIZE = HMAX_NORMALIZE
         self.INITITAL_ACCOUNT_BALANCE = INITIAL_ACCOUNT_BALANCE
         self.TRANSACTION_FEE_PERCENT = TRANSACTION_FEE_PERCENT
-        self.REWARD_SCALING = REWARD_SCALING
+        self.REWARD_SCALE = REWARD_SCALE
 
-        # Set subclasses
         '''
         The continous action space is normalized between -1 and 1 and scaled as
         'STOCK_DIM'
@@ -72,6 +73,7 @@ class Environment(gym.Env):
             + [adx: 1-30]
         )
         '''
+        # Set subclasses
         self.action_space = spaces.Box(low=-1, high=1, shape=STOCK_DIM)
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(181,))
         self.reward_range = (-np.inf, np.inf)
@@ -82,28 +84,28 @@ class Environment(gym.Env):
         }
        
         # Initialize state 
-        _ = self.reset(bFirstday)
-        if day != 0:    # Starting day is Not first day 
-            self.day = day
-            self.data = self.df.loc[self.day, :]
+        _ = self.reset(b_startday)
+        if current_day != 0:    # Starting current_day is Not first current_day 
+            self.current_day = current_day
+            self.data = self.df.loc[self.current_day, :]
         
         # Get random number generator
         self.rng, _ = seeding.np_random(seed)
 
     def reset(self):
         # Reset memorize all the total balance change
-        self.assetHistory = [self.INITIAL_ACCOUNT_BALANCE]
-        self.rewardHistory = []
+        self.asset_history = [self.INITIAL_ACCOUNT_BALANCE]
+        self.reward_history = []
         
         # Reset variables
         self.reward = 0
         self.cost = 0
-        self.numTrade = 0
+        self.num_trade = 0
         
         # Reset data
-        self.day = 0
-        self.data = self.df.loc[self.day, :]
-        self.bTerminal = False
+        self.current_day = 0
+        self.data = self.df.loc[self.current_day, :]
+        self.b_terminal = False
         
         # Reset state
         self.state = (
@@ -118,7 +120,7 @@ class Environment(gym.Env):
 
         return self.state
 
-    def _sellStock(self, index, action):
+    def _sell_stock(self, index, action):
         # update balance
         self.state[0] += (
             self.state[index+1]
@@ -137,9 +139,9 @@ class Environment(gym.Env):
         )
 
         # Count trade
-        self.numTrade += 1
+        self.num_trade += 1
     
-    def _buyStock(self, index, action):
+    def _buy_stock(self, index, action):
         # perform buy action based on the sign of the action
         available_amount = self.state[0] // self.state[index+1]
             
@@ -161,27 +163,27 @@ class Environment(gym.Env):
         )
 
         # Count trade
-        self.numTrade+=1
+        self.num_trade+=1
 
-    def step(self, actions, bPanic=False):
-        #
-        self.bTerminal = self.day >= len(self.df.index.unique())-1
-
-        if self.bTerminal:
-            #### Add terminal returns (call render)
+    def step(self, actions, b_panic=False):
+        # Check simulation termination
+        self.b_terminal = self.current_day >= len(self.df.index.unique())-1
+        if self.b_terminal: ## Add terminal returns (call render)
             ''' 
             df_total_value = pd.DataFrame(self.asset_memory)
             df_total_value['daily_return']= df_total_value.pct_change(1)
             sharpe = (4**0.5)*df_total_value['daily_return'].mean()/ \
                   df_total_value['daily_return'].std()
             '''
-            return self.state, self.reward, self.bTerminal, {}
+            return self.state, self.reward, self.b_terminal, {}
     
-        if bPanic:    # Over the threshold of turbulence index, do panic sell
+        # Get trade strategy
+        if b_panic:    # Over the threshold of turbulence index, do panic sell
             actions = np.array([-self.HMAX_NORMALIZE] * self.STOCK_DIM)
         else:
             actions = actions * self.HMAX_NORMALIZE
 
+        # Get total asset before trading
         begin_total_asset = (
             self.state[0]
             + sum(
@@ -193,16 +195,16 @@ class Environment(gym.Env):
         # Do trading
         for action in actions:
             if action < 0 and self.state[index+self.STOCK_DIM+1] > 0:
-                self._sellStock(index, action)
+                self._sell_stock(index, action)
             elif action > 0:
-                self._buyStock(index, action)
+                self._buy_stock(index, action)
 
-        #
-        self.day += 1
-        self.data = self.df.loc[self.day,:]         
+        # Update variables
+        self.current_day += 1
+        self.data = self.df.loc[self.current_day,:]         
         self.turbulence = self.data['turbulence'].values[0]
             
-        # load next state
+        # Load next state
         self.state = (
             [self.state[0]] 
             + self.data.adjcp.values.tolist()
@@ -213,6 +215,7 @@ class Environment(gym.Env):
             + self.data.adx.values.tolist()
         )
 
+        # Get total asset after trading
         end_total_asset = (
             self.state[0]
             + sum(
@@ -220,13 +223,16 @@ class Environment(gym.Env):
                 * np.array(self.state[self.OWNED_SHARE_INDICE])
             )
         )
-        self.assetHistory.append(end_total_asset)
+        
+        # Update memory buffer
+        self.asset_history.append(end_total_asset)
             
+        # Update reward
         self.reward = end_total_asset - begin_total_asset            
-        self.rewardHistory.append(self.reward)
-        self.reward = self.reward * self.REWARD_SCALING
+        self.reward_history.append(self.reward)
+        self.reward = self.reward * self.REWARD_SCALE
 
-        return self.state, self.reward, self.bTerminal, {}
+        return self.state, self.reward, self.b_terminal, {}
    
     
     def render(self, mode="human"):
@@ -276,7 +282,7 @@ class Framework(gym.Wrapper):
     '''
     def __init__(self, env, 
                        previous_state=list(), 
-                       bInitial=True,
+                       b_initial=True,
                        TURBULENCE_THRESHOLD=140,    # turbulence index: 90-150 reasonable threshold
                 ):
         super(Framework, self).__init__()
@@ -284,7 +290,7 @@ class Framework(gym.Wrapper):
         # Define wrapping environment
         self.env = env
         self.previous_state = previous_state
-        self.bInitial = bInitial
+        self.b_initial = b_initial
 
         # Set parameter
         self.STOCK_DIM = self.env.STOCK_DIM
@@ -301,7 +307,7 @@ class Framework(gym.Wrapper):
         self.metadata = self.env.metadata
    
     def reset(self, **kwargs):
-        if self.bInitial:
+        if self.b_initial:
             # Initialize turbulence factor
             self.turbulence = 0
         
@@ -311,24 +317,24 @@ class Framework(gym.Wrapper):
             self.turbulence = 0
         
             # Previous total asset
-            self.env.assetHistory = [(
+            self.env.asset_history = [(
                 self.previous_state[0]
                 + sum(
                     np.array(self.previous_state[1:self.STOCK_DIM+1])
                     * np.array(self.previous_state[self.OWNED_SHARE_INDICE])
                 )
             )]
-            self.env.rewardHistory = []
+            self.env.reward_history = []
 
             # Reset variable
             self.env.cost = 0
             self.env.reward = 0
-            self.env.numTrade = 0
+            self.env.num_trade = 0
             
             # Reset data
-            self.env.day = 0
-            self.env.data = self.df.loc[self.env.day, :]
-            self.env.bTerminal = False
+            self.env.current_day = 0
+            self.env.data = self.df.loc[self.env.current_day, :]
+            self.env.b_terminal = False
 
             # Reset state
             self.env.state = (
@@ -343,17 +349,17 @@ class Framework(gym.Wrapper):
 
             return self.state
     
-    def _buyStock(self, index, action):
+    def _buy_stock(self, index, action):
         if self.turbulence < self.TURBULENCE_THRESHOLD:
-            self.env._buyStock(index, action)
+            self.env._buy_stock(index, action)
         else:
             pass
 
-    def _sellStock(self, index, action):
+    def _sell_stock(self, index, action):
         if self.turbulence < self.TURBULENCE_THRESHOLD:
-            self.env._sellStock(index, action)
+            self.env._sell_stock(index, action)
         else:    # if turbulence goes over threshold, just clear out all positions
-            # update balance
+            # Update balance
             self.env.state[0] += (
                 self.env.state[index+1]
                 * self.env.state[index+self.STOCK_DIM+1]
@@ -369,13 +375,13 @@ class Framework(gym.Wrapper):
             )
 
             # Count trading
-            self.numTrade += 1
+            self.num_trade += 1
 
     def step(self, action):
         if self.turbulence < self.TURBULENCE_THRESHOLD:
             return self.env.step(action)
         else:
-            return self.env.step(action, bPanic=True)
+            return self.env.step(action, b_panic=True)
 
     def render(self, mode="human", **kwargs):
         return self.env.render(mode, **kwargs)
