@@ -7,7 +7,7 @@ from    preproc.preproc     import  Preprocessor
 from    environment         import  Environment, Framework
 from    agent               import  Agent
 
-from    utils               import  setConfig
+from    utils               import  set_config
 
 
 class StockTrader(object):
@@ -16,7 +16,7 @@ class StockTrader(object):
                        RANDOM_SEED=931016
                 ):
         # Read configuration file
-        self.config = setConfig(EXEC_MODE, CONFIG_FILE_NAME)
+        self.config = set_config(EXEC_MODE, CONFIG_FILE_NAME)
 
         # Set hardware environment
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = "3"
@@ -41,42 +41,40 @@ class StockTrader(object):
          if not os.path.isdir(self.config["output_folder_path"]) else None]
 
     def train(self):
-        # Declare data loader
-        print("[1] Set data loader")
+        # load dataset
+        print("[1] Load dataset and apply preprocessing")
         preprocessor = Preprocessor(
             TECHNICAL_INDICATOR_LIST=list(),
             USER_DEFINED_FEATURES=dict(),
-            bUseTechnicalIndicator=self.config["b_use_technical_indicator"],
-            bUseVolatilityIndex=self.config["b_use_volatility_index"],
-            bUseTurbulenceIndex=self.config["b_use_turbulence_index"],
-            bUseUserDefinedIndex=self.config["b_use_user_defined_index"]
+            b_use_technical_indicator=self.config["b_use_technical_indicator"],
+            b_use_volatility_index=self.config["b_use_volatility_index"],
+            b_use_turbulence_index=self.config["b_use_turbulence_index"],
+            b_use_user_defined_index=self.config["b_use_user_defined_index"]
         )
-        
-        # Do preprocessing
-        print("[2] Load dataset and apply preprocessing")
-        dataset = preprocessor.load(
-            DATASET_FINE_NAME=self.config["dataset_file_name"]
+        dataset = preprocessor.load_csv(
+            filename=self.config["dataset_file_name"]
         )
         dataset = preprocessor.apply(dataset)
 
         # Declare environment
-        print("[3] Set environment")
+        print("[2] Set environment")
         environment = Environment(
             dataset, 
-            day=0
-            STOCK_DIM=self.config["max_num_stock_hold"]
-            HMAX_NORMALIZE=self.config["max_normalized_share_size"]
-            INITIAL_ACCOUNT_BALACE=self.config["initital_account_balance"]
-            TRANSACTION_FEE_PERCENT=self.config["transaction_fee_precent"]
-            REWARD_SCALING=self.config["reward_scaling"]
+            current_day=0,
+            b_start_day=True,
+            STOCK_DIM=self.config["max_num_stock_hold"],
+            HMAX_NORMALIZE=self.config["max_normalized_share_size"],
+            INITIAL_ACCOUNT_BALACE=self.config["initital_account_balance"],
+            TRANSACTION_FEE_PERCENT=self.config["transaction_fee_precent"],
+            REWARD_SCALE=self.config["reward_scaling"]
         )
 
         # Declare agent
-        print("[4] Ready for training")
+        print("[3] Ready for training")
         agent = Agent()
 
         # Train agent
-        print("[5] Run!")
+        print("[4] Run!")
         agent.train()
 
     def trade(self):
