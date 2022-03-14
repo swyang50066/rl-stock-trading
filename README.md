@@ -1,28 +1,29 @@
-# Multi-Agent Reinforcement Learning Based Auto-Stock Trading System with Pytorch and Gym
+# Multi-Agent Reinforcement Learning Based Stock Trader (w/ Pytorch, JAX, and GYM)
 
 ## 1. Introduction
-This repository is for building auto-stock trading system 
-of which strategy follows a policym trained under multi-agent reinforcement learning scheme.
+This repository is for introducing stock trading algorithm of multi-agent that follows a policy trained under deep reinforcement learning. 
 
+The algorithm is accelerated and parallelized by using `Pytorch` and `JAX` libraries, and environment is built following `GYM` API.
 
-Update schedule is going to be announced in `Projects` section of menu!
+Unfortunately, the repository is currently under maintenance, but the alpha version is going to be released as soon as possible!
 
 
 ## 2. Usage
+***This would be updated soon!***
 
 
 ## 3. Requirements
 ```
 requirements = { 
-    numpy>=1.19,
-    jax,
+    numpy>=1.19.0,
+    pandas>=0.25.0,
     gym,
-    scikit-learn,
+    jax,
 }
 ```
 
 ## 4. Reference
-[[1]](https://damoracapital.com/wp-content/uploads/2021/04/Deep-reinforcement-learning-for-Automated-Stock-trading-Ensemble-Strategy-ID3690996.pdf) YANG, Hongyang, et al. Deep reinforcement learning for automated stock trading: An ensemble strategy. Available at SSRN, 2020.
+[[1]](https://damoracapital.com/wp-content/uploads/2021/04/Deep-reinforcement-learning-for-Automated-Stock-trading-Ensemble-Strategy-ID3690996.pdf) Yang, Hongyang and Liu, Xiao-Yang and Zhong, Shan and Walid, Anwar, Deep Reinforcement Learning for Automated Stock Trading: An Ensemble Strategy (September 11, 2020). Available at SSRN: https://ssrn.com/abstract=3690996 or http://dx.doi.org/10.2139/ssrn.3690996
 
 
 ## 5. Licence
