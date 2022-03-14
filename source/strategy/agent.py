@@ -8,28 +8,16 @@ class Agent(ABC):
     '''
     @abstractmethod
     def build(self):
-        ''' Build network model
-        '''
-        pass
-    
-    @abstrctmethod
-    def set_loss_function(self):
-        ''' Set loss function
+        ''' Build network model with loss function and optimizer
         '''
         pass
 
     @abstractmethod
-    def set_optimizer(self):
-        ''' Set optimizer
+    def setup(self):
+        ''' Set optimizer, loss and callback functions
         '''
         pass
-
-    @abstractmethod
-    def set_callback(self):
-        ''' Set callback
-        '''
-        pass
-
+            
     @abstractmethod
     def compile(self):
         ''' Compile model with optimizer and loss function
@@ -53,99 +41,81 @@ class Axuiliary(object)
             return np.expand_dims(x, axis=0)
         else: 
             return x
-    
+
     def transfer(self, model_a, model_b):
         ''' Transfer model_a weights to model_b
         '''
         model_b.set_weights(model_a.get_weights())
 
-    def save_weight(self, model, path, filename):
+    def save_weight(self, model, file_path):
         ''' Save model weights
         '''
-        model.save_weights(path + filename)
+        model.save_weights(file_path)
 
-    def load_weight(self, model, path, filename):
+    def load_weight(self, model, file_path):
         ''' Load model weights
         '''
-        model.load_weights(path + filename)
-
-        pass
+        model.load_weights(file_path)
 
 
-class Strategy(Axuiliary):
+class Strategy(ABC, Axuiliary):
     ''' Strategy superclass for q-value based algorithms
     '''
-    def __init__(self, ENV_DIM,
-                       ACTION_DIM,
-                       NUM_FRAME=4,
-                       GAMMA=.99,
-                       INIT_LEARNING_RATE=1.e-4,
-                       NUM_EPISODE=5000,
-                ) -> None:
+    def __init__(self, env,
+                       input_dim=181,
+                       output_dim=3,
+                       gamma=.99,
+                       init_learning_rate=1.e-4,
+                       num_frame=4,
+                       num_episode=5000,
+                ):
         # Agent class
         self._agent = None
 
-        # Environment and  Model parameters
-        self.ACTION_DIM = ACTION_DIM
-        self.ENV_DIM = (NUM_FRAME,) + ENV_DIM
-        self.GAMMA = GAMMA
-        self.INIT_LEARNING_RATE = INIT_LEARNING_RATE
-        self.NUM_EPISODE = NUM_EPISODE
+        # Environment class
+        self.env = env
+
+        # Model parameters
+        self.input_dim = (num_frame,) + input_dim
+        self.output_dim = output_dim
+        self.gamma = gamma
+        self.init_learning_rate = init_learning_rate
+        self.num_episode = num_episode
 
     @property
     def agent(self):
         return self._agent
 
-    @actor.setter
+    @agent.setter
     def agent(self, Iagent):
         self._agent = Iagent
+
+    @abstractmethod
+    def get_next_action(self, state):
+        ''' Return next action of input  state
+        '''
+        pass
+
+    @abstractmethod
+    def get_discounted_reward(self, rewards):
+        ''' Evaluate discounted reward
+        '''
+        pass
+
+    @abstractmethod
+    def train(self):
+        ''' Train agent under a RL strategy
+        '''
+        pass
+
+    @abstractmethod
+    def trade(self):
+        ''' Trade stock with a RL strategy
+        '''
+        pass
 
     def evolve(self, transitions):
         ''' Train model for a iteration
         '''
         self._agent.evolve(transitions)
-
-
-
-class ActorCriticStrategy(Axuiliary):
-    ''' Strategy superclass for actor-critic based algorithms 
-    '''
-    def __init__(self, ENV_DIM,
-                       ACTION_DIM,
-                       NUM_FRAME=4,
-                       GAMMA=.99,
-                       INIT_LEARNING_RATE=1.e-4,
-                       NUM_EPISODE=5000,
-                ) -> None:
-        # Agent class
-        self._agent = None
-
-        # Environment and  Model parameters
-        self.ACTION_DIM = ACTION_DIM
-        self.ENV_DIM = (NUM_FRAME,) + ENV_DIM
-        self.GAMMA = GAMMA
-        self.INIT_LEARNING_RATE = INIT_LEARNING_RATE
-        self.NUM_EPISODE = NUM_EPISODE
-
-    @property
-    def actor(self):
-        return self._actor
-
-    @actor.setter
-    def actor(self, Iactor):
-        self._actor = Iactor
-
-    @property
-    def critic(self):
-        return self._critic
-
-    @critic.setter
-    def critic(self, Icritic):
-        self._critic = Icritic
-
-    def evolve(self, transitions):
-        ''' Train model for a iteration
-        '''
-        self._actor.evolve(transitions)
-        self._critic.evolve(transitions)
 
