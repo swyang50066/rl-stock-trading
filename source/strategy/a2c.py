@@ -13,7 +13,7 @@ from    strategy.agent      import  Agent, Strategy
 class A2CAgent(Agent):
     '''  Actor for the A2C algorithm
     '''
-    def __init__(self, input_dim, output_dim, lr, gamma):
+    def __init__(self, input_dim, output_dim, lr):
 
         # Build network model
         inputs = self.build(input_dim=input_dim, output_dim=output_dim)
@@ -136,7 +136,6 @@ class A2C(Strategy):
             input_dim=self.input_dim, 
             output_dim=self.output_dim, 
             lr=self.init_learning_rate,
-            gamma=self.gamma
         )
         
     def get_next_action(self, state):
