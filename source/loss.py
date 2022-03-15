@@ -2,25 +2,25 @@ import  keras
 import  keras.backend       as  K
 
 
-def policy_loss_function(value_true, value_pred, eps=1.e-16):
+def policy_loss_function(advantage, eps=1.e-16):
     ''' Policy loss function
     '''
-    advantage = value_true - value_pred
-    def _loss(y_true, y_pred):
-        # Eligibility
-        eligibility = K.sum(y_pred*y_true, axis=1, keepdims=True)
-        eligibility = K.sum(-K.log(eligibility) + eps)
-        eligibility *= K.stop_gradient(advantage))
+    def _loss(y_true, y_pred, alpha=0.01):
+        # Eligibility 
+        eligibility = -K.log(K.sqrt(2*np.pi)*sigma) - (action - mu)**2/ (2*sigma*sigma)
+        eligibility *= adventage
 
         # Entropy
-        entropy = K.sum(y_pred*K.log(y_pred + eps), axis=1)
+        entropy = -.5*K.log(2.*np.pi*np.e*sigma)
 
-        return alpha*entropy - eligibility
+        torch::Tensor loss_tot = loss + entropy_loss ;
+
+        return eligibility + alpha*entropy
 
     return _loss
 
 
-def value_loss_function(y_true, y_pred):
+def value_loss_function(y_true, y_pred, beta=.5):
     ''' Value loss function
     '''
-    return K.mean(.5*K.square(y_true - y_pred))
+    return beta*K.mean(K.square(y_true - y_pred))

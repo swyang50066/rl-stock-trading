@@ -196,7 +196,7 @@ class Environment(gym.Env):
         )
 
         # Do trading
-        for action in actions:
+        for index, action in enumerate(actions):
             if action < 0 and self.state[index+self.stock_dim+1] > 0:
                 self._sell_stock(index, action)
             elif action > 0:
