@@ -30,6 +30,12 @@ class Agent(ABC):
         '''
         pass
 
+    @abstractmethod
+    def predict(self, state):
+        ''' Do model prediction
+        '''
+        return None
+
 
 class Axuiliary(object)
     ''' Axuiliary subclass including utility methods
@@ -62,11 +68,8 @@ class Strategy(ABC, Axuiliary):
     ''' Strategy superclass for q-value based algorithms
     '''
     def __init__(self, env,
-                       input_dim=181,
-                       output_dim=3,
                        gamma=.99,
                        init_learning_rate=1.e-4,
-                       num_frame=4,
                        num_episode=5000,
                 ):
         # Agent class
@@ -76,8 +79,9 @@ class Strategy(ABC, Axuiliary):
         self.env = env
 
         # Model parameters
-        self.input_dim = (num_frame,) + input_dim
-        self.output_dim = output_dim
+        self.input_dim = env.obervation_dim
+        self.output_dim = env.stock_dim
+        self.num_frame = len(env.df.index.unique())
         self.gamma = gamma
         self.init_learning_rate = init_learning_rate
         self.num_episode = num_episode
@@ -114,8 +118,14 @@ class Strategy(ABC, Axuiliary):
         '''
         pass
 
+    def initialize(self):
+        ''' Initialize agent configuration
+        '''
+        self._agent.build()
+        self._agent.setup()
+        self._agent.compile()
+
     def evolve(self, transitions):
         ''' Train model for a iteration
         '''
         self._agent.evolve(transitions)
-

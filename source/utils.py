@@ -3,7 +3,7 @@ import  json
 from    collections     import  defaultdict
 
 
-## Features
+# <---- Features
 CONFIG_TRAIN_IO_FEATURES = {
     "input_folder_path": "./"
     "output_folder_path": "./",
@@ -45,7 +45,12 @@ DEFAULT_TRAIN_CONFIG_FEATURES = defaultdict(bool, {
 def _updater(key, value):
     ''' Update value of default dictionary
     '''
-    # ====> Some condition to verify value
+    # ====>
+    '''
+    user arguments
+    '''
+    # <====
+
     return value
 
 
