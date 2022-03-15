@@ -28,5 +28,10 @@
         "initial_account_balance": 1000000,
         "transcation_fee_percent": 0.0001,
         "reward_scaling": 0.0001
+    },
+    "train_config": {
+        "gamma": 0.99, 
+        "init_learning_rate": 0.0001,
+        "num_episode": 5000
     }
 }

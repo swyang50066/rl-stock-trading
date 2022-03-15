@@ -75,13 +75,15 @@ def _from_ohlcv_to_adjusted(df):
 
 def add_user_defined_feature(df, features):
     ''' Append 'user-defined-feature' to the data frame
-
-        *** To be updated soon!
     '''
     # Fetch data frame
     x = df.copy()
-    
+   
+    # ====> 
+    '''
     x["daily_return"] = df.cloase.pct_change(1)
+    '''
+    # <====
 
     return x
 
@@ -235,24 +237,24 @@ def add_turbulence_index(df):
 
 
 class Preprocessor(object):
-    def __init__(self, TECHNICAL_INDICATOR_LIST=list(),
-                       USER_DEFINED_FEATURES=dict(), 
+    def __init__(self, technical_indicator_list=list(),
+                       user_defined_features=dict(), 
                        b_use_technical_indicator=True,
                        b_use_volatility_index=True,
                        b_use_turbulence_index=True,
                        b_use_user_defined_index=True 
                 ):
         # Declare parameters
-        if (isinstance(TECHNICAL_INDICATOR_LIST, list) and 
-            TECHNICAL_INDICATOR_LIST):
-            self.TECHNICAL_INDICATOR_LIST = TECHNICAL_INDICATOR_LIST
+        if (isinstance(technical_indicator_list, list) and 
+            technical_indicator_list):
+            self.technical_indicator_list = technical_indicator_list
         else:
-            self.TECHNICAL_INDICATOR_LIST = DEFAULT_TECHNICAL_INDICATOR_LIST
-        if (isinstance(USER_DEFINED_FEATURES, dict) and
-            USER_DEFINED_FEATURES):
-            self.USER_DEFINED_FEATURES = USER_DEFINED_FEATURES
+            self.technical_indicator_list = DEFAULT_TECHNICAL_INDICATOR_LIST
+        if (isinstance(user_defined_features, dict) and
+            user_defined_features):
+            self.user_defined_features = user_defined_features
         else:
-            self.USER_DEFINED_FEATURES = DEFAULT_USER_DEFINED_FEATURES
+            self.user_defined_features = DEFAULT_USER_DEFINED_FEATURES
 
         self.b_use_technical_indicator = b_use_technical_indicator
         self.b_use_volatility_index = b_use_volatility_index
@@ -294,7 +296,7 @@ class Preprocessor(object):
         print("Append technical indicators")
         if self.b_use_technical_indicator:
             df = add_technical_indicator(
-                df, indicators=self.TECHNICAL_INDICATOR_LIST
+                df, indicators=self.technical_indicator_list
             )
 
         # Add VIX for multiple stock
@@ -311,7 +313,7 @@ class Preprocessor(object):
         print("Append user-defined-feature")
         if self.b_use_user_defined_feature:
             df = add_user_defined_feature(
-                df, features=self.USER_DEFINED_FEATURES
+                df, features=self.user_defined_features
             )
 
         # Fill the missing values at the beginning and the end
