@@ -16,6 +16,7 @@ class A2CNetwork(tf.keras.Model):
 
         self.action_dense0 = Dense(128, activation="relu")
         self.action_dense1 = Dense(output_dim, activation="tanh")
+        self.action_dense2 = Dense(output_dim, activation="softplus")
 
         self.value_dense0 = Dense(128, activation="relu")
         self.value_dense1 = Dense(1, activation="linear")
@@ -24,7 +25,8 @@ class A2CNetwork(tf.keras.Model):
         ''' I/O dimensionality
                 dim(input_state) = (num_frame, observation_dim) 
                 dim(input_value) = (num_frame, 1)
-                dim(output_action) = (num_frame, stock_dim)
+                dim(output_mu) = (num_frame, stock_dim)
+                dim(output_sigma) = (num_frame, stock_dim)
                 dim(output_value) = (num_value, 1)
         '''
         # Parse inputs
@@ -36,11 +38,12 @@ class A2CNetwork(tf.keras.Model):
         x = self.bn_dense1(x)
 
         # Actor pathway
-        output_action = self.action_dense0(x)
-        output_action = self.action_dense1(output_action)
+        x0 = self.action_dense0(x)
+        output_mu = self.action_dense1(x0)
+        output_log_sigma = self.action_dense2(x0)
 
         # Critic pathway
         output_value = self.value_dense0(x)
         output_value = self.value(output_value)
   
-        return [output_action, output_value]
+        return [output_mu, output_log_sigma, output_value]

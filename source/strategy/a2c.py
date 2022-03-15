@@ -29,10 +29,14 @@ class A2CAgent(Agent):
         input_state = Input(shape=(self.num_frame, self.input_dim))
         input_value = Input(shape=(self.num_frame, 1))
         inputs = [input_state, input_value]
-        outputs = A2CNetwork(output_dim=self.output_dim)(inputs)
+        
+        # Outputs
+        mu, log_sigma, value = A2CNetwork(output_dim=self.output_dim)(inputs)
+        params = tf.concat([mu, log_sigma], axis=-1)
+        outputs = [params, value]
 
         # Advantage; discounted_reward - critic_predicted_value
-        self.advantage = input_value - outputs[1]
+        self.advantage = input_value - value
 
         # Build model        
         self.model = Model(inputs=inputs, outputs=outputs)
@@ -60,28 +64,29 @@ class A2CAgent(Agent):
         # Parse input variables
         state_buffer, action_buffer, reward_buffer, _  = transitions
 
+        # Critic prediction
+        critic_pred = self.predict(
+            [state_buffer, np.zeros((self.num_frame, 1))], 
+            output_type="value"
+        )
+
         # Build lists of inputs and targets
         inputs = [state_buffer, reward_buffer]
-        targets = [
-            action_buffer, 
-            self.model.predict(state_buffer, output_type="value")
-        ]
+        targets = [action_buffer, critic_pred]
 
         # Train on batch
         self.model.train_on_batch(x=inputs, y=targets)
 
-    def predict(self, state, output_type="action"):
+    def predict(self, inputs, output_type="params"):
         ''' Do model prediction
 
-            'output_type' is a element of tuple ("action", "value", "both")
+            'output_type' is a element of tuple ("parmas", "value")
         ''' 
-        outputs = self.model.predict(state)
-        if output_type == "action":
+        outputs = self.model.predict(inputs)
+        if output_type == "params":
             return outputs[0]
         elif output_type == "value":
             return outputs[1]
-        else output_type == "both"
-            return outputs
 
 
 class A2CStrategy(Strategy):
@@ -114,8 +119,18 @@ class A2CStrategy(Strategy):
     def get_next_action(self, state):
         ''' Use actor policy to get next action
         '''
-        return self.predict(state, output_type="action")
-    
+        # Get Gaussian policy    
+        params = self.predict(state, output_type="params")
+        mu, log_sigma = (
+            params[:, :self.output_dim], params[:, self.output_dim:]
+        )
+
+        # Sampling and symmetrically normalize along (-1, 1) 
+        action = np.random.normal(mu, np.exp(sigma))
+        action = np.clip(action, -1, 1)
+
+        return action
+
     def get_discounted_reward(self, rewards):
         ''' Evaluate discounted reward
         '''
