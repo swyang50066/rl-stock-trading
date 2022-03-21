@@ -1,14 +1,28 @@
+from    datetime    import  datetime
+
 import  pandas      as  pd
 import  yfinance    as  yf
+
+
+def _to_divided_format(date):
+    ''' Convert input date format from '%Y%m%d' to '%Y-%m-%d'
+    '''
+    return str(datetime.strptime(date, "%Y%m%d").strftime("%Y-%m-%d")) 
+
+
+def _to_collected_format(date):
+    ''' Convert input date format from '%Y%-m-%d' to '%Y%m%d'
+    '''
+    return str(datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d"))
 
 
 class Uploader(object):
     ''' Upload stock dataset
     '''
-    def __init__(self, tickers, start, end, proxy=None):
+    def __init__(self, tickers, start_date, end_date, proxy=None):
         # Set parameters
-        self.start = start
-        self.end = end
+        self.start_date = _to_divided_format(start_date)
+        self.end_date = _to_divided_format(end_date)
         self.tickers = tickers
         self.proxy = proxy
 
@@ -38,7 +52,10 @@ class Uploader(object):
         for ticker in self.tickers:
             # Get stock data
             tmp = yf.download(
-                ticker, start=self.start, end=self.end, proxy=self.proxy
+                ticker, 
+                start=self.start_date, 
+                end=self.end_date, 
+                proxy=self.proxy
             )
             tmp["tic"] = ticker
      
@@ -58,7 +75,7 @@ class Uploader(object):
         
             # Convert date to standard string format, easy to filter
             tmp["date"] = tmp.date.apply(
-                lambda item: item.strftime("%Y-%m-%d")
+                lambda item: _to_collected_format(item.strftime("%Y-%m-%d"))
             )
         
             # Use adjusted close price instead of close price
@@ -81,6 +98,7 @@ class Uploader(object):
         
         # Drop missing data
         df = df.dropna()
+        df = df.sort_values(by=["date", "tic"])
         df = df.reset_index(drop=True)
 
         return df
