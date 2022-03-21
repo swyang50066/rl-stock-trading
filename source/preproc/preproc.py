@@ -1,7 +1,11 @@
-import  numpy       as  np
+import  os
 
-import  pandas          as  pd
+import  numpy       as  np
+import  pandas      as  pd
+
 from    stockstats      import  StockDataFrame      as  sdf
+
+from    preproc.uploader        import  Uploader
 
 
 # Headers
@@ -16,7 +20,7 @@ OHLCV_VALUE_HEADS = [
 
 # Variables
 DEFAULT_TECHNICAL_INDICATOR_LIST = [
-    "macd", "rsi_30", "cci_30", "adx_30"
+    "macd", "rsi_30", "cci_30", "dx_30"
 ]
 DEFAULT_USER_DEFINED_FEATURES = {
 }
@@ -26,17 +30,17 @@ def _from_adjusted_to_ohlcv(df):
     ''' Convert Adjusted values to OHLCV
     '''
     # Fetch adjusted items
-    x = df.copy()[ADUSTED_VALUE_HEADS]
+    x = df.copy()[ADJUSTED_VALUE_HEADS]
 
     # Fill non-zero daily adjustment factor
-    x["ajexdi"] = x["adjexdi"].apply(
+    x["ajexdi"] = x["ajexdi"].apply(
         lambda index: 1 if index == 0 else index
     )
 
     # Convert values
     x["adjcp"] = x["prccd"] / x["ajexdi"]
     x["open"] = x["prcod"] / x["ajexdi"]
-    x["high"] = x["prchd"] / x["adexdi"]
+    x["high"] = x["prchd"] / x["ajexdi"]
     x["low"] = x["prcld"] / x["ajexdi"]
     x["volume"] = x["cshtrd"]
 
@@ -55,14 +59,14 @@ def _from_ohlcv_to_adjusted(df):
     x = df.copy()[OHLCV_VALUE_HEADS]
 
     # Fill non-zero daily adjustment factor
-    x["ajexdi"] = x["adjexdi"].apply(
+    x["ajexdi"] = x["ajexdi"].apply(
         lambda index: 1 if index == 0 else index
     )
 
     # Convert values
     x["prccd"] = x["adjcp"] * x["ajexdi"]
     x["prcod"] = x["open"] * x["ajexdi"]
-    x["prchd"] = x["high"] * x["adexdi"]
+    x["prchd"] = x["high"] * x["ajexdi"]
     x["prcld"] = x["low"] * x["ajexdi"]
     x["schtrd"] = x["volume"]
 
@@ -93,18 +97,17 @@ def add_volatility_index(df):
     '''
     # Fetch data frame 
     x = df.copy()
-        
-    # ====>
-    '''
-    vix = YahooDownloader(
+
+    # Load from Yahoo        
+    vix = Uploader(
+        tickers=["^VIX"],
         start_date=df.date.min(), 
         end_date=df.date.max(), 
-        ticker_list=["^VIX"]
-    ).fetch_data()
-    vix = vix[["date", "close"]]
+    ).fetch()
+
+    # Rearrange columns 
+    vix = vix[["date", "adjcp"]]
     vix.columns = ["date", "vix"]
-    '''
-    # <==== 
 
     # Merge and sort items
     x = x.merge(vix, on="date")
@@ -119,7 +122,6 @@ def add_technical_indicator(df, indicators):
     '''
     # Switch columns
     x = df.copy()
-    x = x.sort_values(by=["tic", "date"])
     
     # Fetch items
     stock = sdf.retype(x.copy())
@@ -137,7 +139,7 @@ def add_technical_indicator(df, indicators):
             temp = pd.DataFrame(temp)
 
             # Fill container items
-            temp["tic"] = unique_ticker[i]
+            temp["tic"] = ticker
             temp["date"] = x[x.tic == ticker]["date"].to_list()
             container = container.append(temp, ignore_index=True)
         
@@ -155,7 +157,7 @@ def add_technical_indicator(df, indicators):
     return x
 
 
-def get_turbulence_index(self, data, start=252):
+def get_turbulence_index(df, start=252):
     ''' Calculate financial turbulence index
         
         (Consider after a year, default: start=252)
@@ -236,7 +238,65 @@ def add_turbulence_index(df):
     return x
 
 
-class Preprocessor(object):
+class DatasetIOMethod(object):
+    @staticmethod
+    def load_yahoo_finance(tickers, start_date, end_date):
+        ''' Load Yahoo finance dataset
+        '''
+        uploader = Uploader(tickers, start_date, end_date)
+
+        return uploader.fetch()
+
+    @staticmethod
+    def load_csv(tickers, file_name, b_adjusted=False):
+        ''' Return dataframe by loading csv dataset file (.csv)
+        '''
+        # Set path of data csv file
+        file_path = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "/" + file_name
+        )
+
+        # Load dataset
+        df = pd.read_csv(file_path)
+        if b_adjusted:
+            df = _from_adjusted_to_ohlcv(df)
+
+        # Filter denoted tickers
+        if tickers:
+            df= df[df["tic"].isin(tickers)]
+            df = df.sort_values(by=["tic", "date"])
+            df = df.reset_index(drop=True)
+
+        return df 
+
+    @staticmethod
+    def save_csv(df, file_name):
+        ''' Save dataframe
+        '''
+        # Set path of data csv file
+        file_path = (
+            os.path.dirname(os.path.realpath(__file__))
+            + "/" + file_name
+        )
+
+        # Save dataframe as .csv file
+        df.to_csv(file_path)
+
+    @staticmethod
+    def batch(df, start_date=20090101, end_date=20201231):
+        ''' Return a batch data from whole dataframe,
+            of which being between 'start_date' and 'end_date'
+        '''
+        # Extract batch and sort items in order of 'date'
+        df_batch = df[(df.datadata >= start_date) & (df.date < end_date)]
+        df_batch = df_batch.sort_values(by=["date", "tic"])
+        df_batch = df_batch.reset_index(drop=True)    # reindexing
+
+        return df_batch
+
+
+class Preprocessor(DatasetIOMethod):
     def __init__(self, technical_indicator_list=list(),
                        user_defined_features=dict(), 
                        b_use_technical_indicator=True,
@@ -244,6 +304,8 @@ class Preprocessor(object):
                        b_use_turbulence_index=True,
                        b_use_user_defined_index=True 
                 ):
+        super(Preprocessor, self).__init__()
+
         # Declare parameters
         if (isinstance(technical_indicator_list, list) and 
             technical_indicator_list):
@@ -261,63 +323,38 @@ class Preprocessor(object):
         self.b_use_turbulence_index = b_use_turbulence_index
         self.b_use_user_defined_index = b_use_user_defined_index
 
-    def load_yahoo_finance(self):
-        ''' Load Yahoo finance dataset
-        '''
-        pass
-    
-    def load_csv(self, filename="dow30_2009_to_2020.csv"): 
-        ''' Return dataframe by loading csv dataset file (.csv)
-        '''
-        # Set path of data csv file
-        filepath = (
-            os.path.dirname(os.path.realpath(__file__))
-            + "../assets/"
-            + dataset_file_name
-        )
-
-        return pd.read_csv(filepath)
-
-    def batch(df, start_date=20090101, end_date=20201231):
-        ''' Return a batch data from whole dataframe,
-            of which being between 'start_date' and 'end_date'
-        '''
-        # Extract batch and sort items in order of 'date'
-        df_batch = df[(df.datadata >= start_date) & (df.date < end_date)]
-        df_batch = df_batch.sort_values(by=["date", "tic"])
-        df_batch = df_batch.reset_index(drop=True)    # reindexing
-
-        return df_batch
-
     def apply(self, df):
         ''' Apply preprocessing
         '''
         # Add technical indicators using stockstats
-        print("Append technical indicators")
         if self.b_use_technical_indicator:
+            print("Append technical indicators")
             df = add_technical_indicator(
                 df, indicators=self.technical_indicator_list
             )
 
         # Add VIX for multiple stock
-        print("Append volatility index (VIX)")
         if self.b_use_volatility_index:
+            print("Append volatility index (VIX)")
             df = add_volatility_index(df)
 
         # Add turbulence index for multiple stock
-        print("Append turbulence index")
         if self.b_use_turbulence_index:
+            print("Append turbulence index")
             df = add_turbulence_index(df)
-
+        
         # Add user defined feature
         print("Append user-defined-feature")
-        if self.b_use_user_defined_feature:
+        if self.b_use_user_defined_index:
+            print("Append user-defined-feature")
             df = add_user_defined_feature(
                 df, features=self.user_defined_features
             )
-
+        
         # Fill the missing values at the beginning and the end
         df = df.fillna(method="ffill").fillna(method="bfill")
-       
+        df = df.sort_values(by=["date", "tic"])
+        df = df.reset_index(drop=True) 
+        
         return df
         
