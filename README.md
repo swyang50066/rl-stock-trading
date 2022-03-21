@@ -1,11 +1,9 @@
 # Multi-Agent Reinforcement Learning Based Stock Trader (w/ Pytorch, JAX, and GYM)
 
 ## 1. Introduction
-This repository is for introducing stock trading algorithm of multi-agent that follows a policy trained under deep reinforcement learning. 
+This repository is to introduce a multi-agent stock trading algorithm with a jointed policy distribution trained under strategy of deep reinforcement learning. The source code includes stock trading environment follows GYM API, various reinforcement learning algorithms, and GUI application. As to RL algorithms, the numerical parts are largely built with `numpy`, but deep learning and linear algebra are to be accelerated and parallelized by using `Pytorch` and `JAX`. 
 
-The algorithm is accelerated and parallelized by using `Pytorch` and `JAX` libraries, and environment is built following `GYM` API.
-
-Unfortunately, the repository is currently under maintenance, but the alpha version is going to be released as soon as possible!
+Unfortunately, the source code is currently under maintenance but of which alpha version is going to be released as soon as possible!
 
 
 ## 2. Usage
