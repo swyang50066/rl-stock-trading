@@ -1,12 +1,13 @@
 import  numpy       as  np
 
-from    keras.models        import  Model
-from    keras.layers        import  Input
-from    keras.optimizers    import  RMSprop
+import  tensorflow      as  tf
+from    tensorflow.keras.models        import  Model
+from    tensorflow.keras.layers        import  Input
+from    tensorflow.keras.optimizers    import  RMSprop
 
 
-from    loss                    import  (policy_loss_function, 
-                                         value_loss_function,
+from    loss                    import  (policy_loss_func, 
+                                         value_loss_func,
                                          )
 from    network.a2c_network     import  A2CNetwork
 from    strategy.agent          import  Agent, Strategy
@@ -45,7 +46,7 @@ class A2CAgent(Agent):
         ''' Set optimizer, loss and callback functions
         '''
         # Set optimizer, loss functions and callbacks
-        self.optimizer = RMSprop(lr=self.lr, epsilon=0.1, rho=0.99)
+        self.optimizer = RMSprop(learning_rate=self.lr, epsilon=0.1, rho=0.99)
         self.losses = [policy_loss_func(self.advantage), value_loss_func]
         self.callbacks = list()
 
@@ -53,9 +54,8 @@ class A2CAgent(Agent):
         ''' Compile model with optimizer and loss function
         '''
         self.model.compile(
-            optimizer=self.optimizer
-            loss=self.losses, 
-            callbacks=self.callbacks
+            optimizer=self.optimizer,
+            loss=self.losses 
         )
 
     def evolve(self, transitions):
@@ -98,7 +98,7 @@ class A2CStrategy(Strategy):
                        num_episode=5000,
                 ) -> None: 
         # Initialize internal setup
-        super(A2CStrategy, self).__init__(self, 
+        super(A2CStrategy, self).__init__(
             env,
             gamma=gamma,
             init_learning_rate=init_learning_rate,

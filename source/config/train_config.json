@@ -1,7 +1,7 @@
 {
     "io_path_config": {
-        "input_folder_path": "",
-        "output_folder_path": ""
+        "input_folder_path": "../assets/dataset/",
+        "output_folder_path": "./model"
     },
     "gpu_env_config": {
         "b_use_gpu": false, 
@@ -11,19 +11,19 @@
         ]
     },
     "dataset_config": {
-        "dataset_file_name": "dow30_2009_to_2020.csv",
+        "dataset_file_name": "dow30_2009_to_2020_adjusted.csv",
         "b_use_technical_indicator": true,
-        "b_use_volatility_index": true,
+        "b_use_volatility_index": false,
         "b_use_turbulence_index": true,
-        "b_use_user_defined_index": true 
+        "b_use_user_defined_index": false 
     },
     "portfolio": {
         "ticker_list": [
-            "AAPL", "SPY"
+            "AAPL", "AXP"
         ]
     },
     "stock_market_config": {
-        "max_num_stock_hold": 30,
+        "max_num_stock_hold": 2,
         "max_normalized_share_size": 100,
         "initial_account_balance": 1000000,
         "transcation_fee_percent": 0.0001,
@@ -32,6 +32,6 @@
     "train_config": {
         "gamma": 0.99, 
         "init_learning_rate": 0.0001,
-        "num_episode": 5000
+        "num_episode": 5
     }
 }

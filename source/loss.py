@@ -5,7 +5,7 @@ import  keras
 import  keras.backend       as  K
 
 
-def policy_loss_function(advantage, eps=1.e-16):
+def policy_loss_func(advantage, eps=1.e-16):
     ''' Policy loss function
     '''
     def _neglogp(action, mu, sigma):
@@ -35,7 +35,7 @@ def policy_loss_function(advantage, eps=1.e-16):
     return _loss
 
 
-def value_loss_function(y_true, y_pred, beta=.5):
+def value_loss_func(y_true, y_pred, beta=.5):
     ''' Value loss function
     '''
     return beta*K.mean(K.square(y_true - y_pred))

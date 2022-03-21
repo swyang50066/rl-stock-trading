@@ -5,7 +5,7 @@ from    collections     import  defaultdict
 
 # <---- Features
 CONFIG_TRAIN_IO_FEATURES = {
-    "input_folder_path": "./"
+    "input_folder_path": "./",
     "output_folder_path": "./",
 }
 CONFIG_GPU_ENVIRONMENT_FEATURES = {
@@ -30,13 +30,13 @@ CONFIG_STOCK_MARKET_FEATURES = {
     "max_normalized_share_size": 100,
     "initial_account_balance": 1000000,
     "transcation_fee_percent": 0.0001,
-    "reward_scaling": 0.0001.
+    "reward_scaling": 0.0001,
 }
 
 DEFAULT_TRAIN_CONFIG_FEATURES = defaultdict(bool, {
     **CONFIG_TRAIN_IO_FEATURES,
     **CONFIG_GPU_ENVIRONMENT_FEATURES,
-    **CONFIG_DATA_SET_FEATURES,
+    **CONFIG_DATASET_FEATURES,
     **CONFIG_PORTFOLIO_FEATURES,
     **CONFIG_STOCK_MARKET_FEATURES,
 })
@@ -59,22 +59,20 @@ def _decoder(obj):
     '''
     for key, value in obj.items():
         if isinstance(value, dict):
-            for subkey, subvalue in decoder(value):
+            for subkey, subvalue in _decoder(value):
                 yield (subkey, subvalue)
         else:
             yield (key,value)
 
 
-def set_config(EXEC_MODE="train", 
-               CONFIG_FILE_NAME="train_config.json"
-              ):
+def set_config(mode, config_file_name):
     ''' Parsing configuration file (.json), one sets model environment
     '''
     # Set path of configuration file
     json_file_path = (
         os.path.dirname(os.path.realpath(__file__))
         + "/config/"
-        + CONFIG_FILE_NAME
+        + config_file_name
     )
     
     # Parse configuration from .json
@@ -90,7 +88,7 @@ def set_config(EXEC_MODE="train",
 
     # Build data base info dictionary
     for key, value in _decoder(obj):
-        config_features[key] = _update(key, value)
+        config_features[key] = _updater(key, value)
 
     return config_features
 

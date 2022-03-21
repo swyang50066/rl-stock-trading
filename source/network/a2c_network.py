@@ -44,6 +44,6 @@ class A2CNetwork(tf.keras.Model):
 
         # Critic pathway
         output_value = self.value_dense0(x)
-        output_value = self.value(output_value)
+        output_value = self.value_dense1(output_value)
   
         return [output_mu, output_log_sigma, output_value]

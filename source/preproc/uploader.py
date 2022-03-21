@@ -101,4 +101,5 @@ class Uploader(object):
         df = df.sort_values(by=["date", "tic"])
         df = df.reset_index(drop=True)
 
-        return df
+        return select_equal_element_stock(df)
+        #return df
