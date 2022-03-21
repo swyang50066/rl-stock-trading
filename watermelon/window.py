@@ -76,7 +76,7 @@ class Interface(Structure):
 
         # Open button
         open_button = QAction(
-            QIcon("exit.png"), "Open Image", self.main_window
+            QIcon("exit.png"), "Open file", self.main_window
         )
         open_button.setShortcut("Ctrl+O")
         open_button.setStatusTip("Open data file")
@@ -84,7 +84,7 @@ class Interface(Structure):
 
         # Save button
         save_button = QAction(
-            QIcon("exit.png"), "Save Image", self.main_window
+            QIcon("exit.png"), "Save file", self.main_window
         )
         save_button.setShortcut("Ctrl+S")
         save_button.setStatusTip("Save result")
@@ -138,5 +138,6 @@ class Interface(Structure):
         frame.setLayout(frame_layout)
         self.pyconsole_layout.addWidget(frame)
 
-        # self.ipyconsole.pushVariables()
-        #
+        # e.g.) push variables to kernel
+        #   variables = {"var1": var1, "var2": var2, ...}
+        #   self.ipyconsole.push_variable(variables)
