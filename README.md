@@ -1,7 +1,7 @@
 # WATERMELON: Multi-Agent Reinforcement Learning Based Stock Trader (w/ Pytorch, JAX, and GYM)
 
 <img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/>
-
+<img src="https://codecov.io/gh/scikit-learn/scikit-learn/branch/main/graph/badge.svg?token=Pk8G9gg3y9"/>
 
 ## 1. WATERMELON
 This repository is to introduce a multi-agent stock trading algorithm with a jointed policy distribution trained under strategy of deep reinforcement learning. The source code includes stock trading environment built with GYM API, various reinforcement learning algorithms (A2C, DDPG, PPO, ... etc.), and GUI application. As to RL algorithms, the numerical parts are largely built with `numpy`, but deep learning and linear algebra are to be accelerated and parallelized by using `Pytorch` and `JAX`. 
