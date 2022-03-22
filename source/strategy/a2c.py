@@ -36,11 +36,11 @@ class A2CAgent(Agent):
         mu, log_sigma, value = A2CNetwork(output_dim=self.output_dim)(inputs)
         outputs = [tf.concat([mu, log_sigma], axis=-1), value]
 
-        # Advantage; discounted_reward - critic_predicted_value
-        self.advantage = input_value - value
-
         # Build model        
         self.model = Model(inputs=inputs, outputs=outputs)
+        
+        # Advantage; discounted_reward - critic_predicted_value
+        self.advantage = input_value - value
 
     def setup(self):
         ''' Set optimizer, loss and callback functions
@@ -49,7 +49,10 @@ class A2CAgent(Agent):
         self.optimizer = RMSprop(
             learning_rate=self.lr, epsilon=.1, rho=.99
         )
-        self.losses = [policy_loss_func(self.advantage), value_loss_func]
+        self.losses = [
+            policy_loss_func(self.advantage), 
+            value_loss_func,
+        ]
         self.callbacks = list()
 
     def compile(self):
