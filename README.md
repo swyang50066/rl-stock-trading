@@ -1,4 +1,4 @@
-# WATERMELON: Multi-Agent Reinforcement Learning Based Stock Trader (w/ Pytorch, JAX, and GYM)
+# WATERMELON: Multi-Agent Reinforcement Learning Based Stock Trading Algorithm
 
 <img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/> <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
 
