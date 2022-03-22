@@ -64,6 +64,11 @@ class StockTrader(object):
             b_adjusted=True
         )
         dataset = preprocessor.apply(dataset)
+        dataset = preprocessor.batch(
+            dataset, start_date=20120102, end_date=20121230
+        )
+
+        print(len(dataset.index.unique()))
 
         # Declare environment
         print("[3] Set environment")
@@ -88,7 +93,16 @@ class StockTrader(object):
 
         # Train agent
         print("[5] Run!")
-        agent.train()
+        simulator.train()
 
     def trade(self):
         pass
+
+
+if __name__ == "__main__":
+    simulator = StockTrader(
+        mode="train",
+        config_file_name="train_config.json"
+    )
+
+    simulator.train()

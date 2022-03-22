@@ -289,7 +289,7 @@ class DatasetIOStaticMethod(object):
             of which being between 'start_date' and 'end_date'
         '''
         # Extract batch and sort items in order of 'date'
-        df_batch = df[(df.datadata >= start_date) & (df.date < end_date)]
+        df_batch = df[(df.date >= start_date) & (df.date < end_date)]
         df_batch = df_batch.sort_values(by=["date", "tic"])
         df_batch = df_batch.reset_index(drop=True)    # reindexing
 

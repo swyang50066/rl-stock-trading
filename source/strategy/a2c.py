@@ -27,15 +27,14 @@ class A2CAgent(Agent):
         ''' Build network model
         '''
         # Inputs
-        input_state = Input(shape=(self.num_frame, self.input_dim))
-        input_value = Input(shape=(self.num_frame, 1))
+        input_state = Input(shape=(self.input_dim,))
+        input_value = Input(shape=(1,))
         inputs = [input_state, input_value]
         
         # Outputs
         mu, log_sigma, value = A2CNetwork(output_dim=self.output_dim)(inputs)
-        params = tf.concat([mu, log_sigma], axis=-1)
-        outputs = [params, value]
-
+        outputs = [tf.concat([mu, log_sigma], axis=-1), value]
+        
         # Advantage; discounted_reward - critic_predicted_value
         self.advantage = input_value - value
 
@@ -46,7 +45,9 @@ class A2CAgent(Agent):
         ''' Set optimizer, loss and callback functions
         '''
         # Set optimizer, loss functions and callbacks
-        self.optimizer = RMSprop(learning_rate=self.lr, epsilon=0.1, rho=0.99)
+        self.optimizer = RMSprop(
+            learning_rate=self.lr, epsilon=0.1, rho=0.99
+        )
         self.losses = [policy_loss_func(self.advantage), value_loss_func]
         self.callbacks = list()
 
@@ -65,16 +66,12 @@ class A2CAgent(Agent):
         state_buffer, action_buffer, reward_buffer, _  = transitions
 
         # Critic prediction
-        critic_pred = self.predict(
-            [state_buffer, np.zeros((self.num_frame, 1))], 
-            output_type="value"
-        )
-
-        # Build lists of inputs and targets
-        inputs = [state_buffer, reward_buffer]
-        targets = [action_buffer, critic_pred]
+        inputs = [state_buffer, np.zeros((state_buffer.shape[0], 1))]
+        critic_pred = self.predict(inputs, output_type="value")
 
         # Train on batch
+        inputs = [state_buffer, reward_buffer]
+        targets = [action_buffer, critic_pred]
         self.model.train_on_batch(x=inputs, y=targets)
 
     def predict(self, inputs, output_type="params"):
@@ -96,7 +93,7 @@ class A2CStrategy(Strategy):
                        gamma=.99,
                        init_learning_rate=1.e-4,
                        num_episode=5000,
-                ) -> None: 
+                ): 
         # Initialize internal setup
         super(A2CStrategy, self).__init__(
             env,
@@ -119,14 +116,18 @@ class A2CStrategy(Strategy):
     def get_next_action(self, state):
         ''' Use actor policy to get next action
         '''
-        # Get Gaussian policy    
-        params = self.predict(state, output_type="params")
-        mu, log_sigma = (
-            params[:, :self.output_dim], params[:, self.output_dim:]
+        # Get Gaussian policy   
+        inputs = (
+            np.expand_dims(state, axis=0),
+            np.zeros(shape=(1, 1))
         )
+        params = self.predict(inputs, output_type="params")
 
         # Sampling and symmetrically normalize along (-1, 1) 
-        action = np.random.normal(mu, np.exp(sigma))
+        action = np.random.normal(
+            params[0, :self.output_dim], 
+            np.exp(params[0, self.output_dim:])
+        )
         action = np.clip(action, -1, 1)
 
         return action
@@ -134,7 +135,7 @@ class A2CStrategy(Strategy):
     def get_discounted_reward(self, rewards):
         ''' Evaluate discounted reward
         '''
-        cumuulated_reward, discounted_rewards = 0, []
+        cumulated_reward, discounted_rewards = 0, []
         for reward in reversed(rewards):
             cumulated_reward = reward + self.gamma*cumulated_reward
             discounted_rewards.append(cumulated_reward)
@@ -152,6 +153,7 @@ class A2CStrategy(Strategy):
 
             # Simulate episode
             while not b_terminal:
+                print("iteration", episode, len(action_buffer))
                 # Actor an action by following the current policy
                 action = self.get_next_action(curr_state)
                 
@@ -167,14 +169,18 @@ class A2CStrategy(Strategy):
                 curr_state = next_state
 
             # Evaluate discounted reward for a episode
-            reward_buffer = self.get_discounted_reward(reward_reward_buffer)
+            reward_buffer = self.get_discounted_reward(reward_buffer)
 
-            # Evolve agents
-            action_buffer = np.stack([action_buffer], axis=1)
+            # Manipulate buffers
+            state_buffer = np.array(state_buffer)
+            action_buffer = np.array(action_buffer)#np.stack([action_buffer], axis=1)
             reward_buffer = np.stack([reward_buffer], axis=1)
-            self.evolve(
-                (state_buffer, action_buffer, reward_buffer, b_terminal)
-            )    
+            transitions = (
+                state_buffer, action_buffer, reward_buffer, b_terminal
+            )
+            
+            # Evolve agents
+            self.evolve(transitions)
 
     def trade(self):
         ''' Start stock trade

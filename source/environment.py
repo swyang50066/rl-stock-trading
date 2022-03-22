@@ -65,7 +65,10 @@ class Environment(gym.Env):
         _ = self.reset()
         if current_day != 0:    # Starting current_day is Not first current_day 
             self.current_day = current_day
-            index_list = (self.current_day+1)*np.arange(self.stock_dim)
+            index_list = np.arange(
+                self.current_day*self.stock_dim,
+                (self.current_day+1)*self.stock_dim
+            )
             self.data = self.df.loc[index_list, :]
         
         # Get random number generator
@@ -83,7 +86,10 @@ class Environment(gym.Env):
         
         # Reset data
         self.current_day = 0
-        index_list = (self.current_day+1)*np.arange(self.stock_dim)
+        index_list = np.arange(
+            self.current_day*self.stock_dim,
+            (self.current_day+1)*self.stock_dim
+        )
         self.data = self.df.loc[index_list, :]
         self.b_terminal = False
        
@@ -143,11 +149,11 @@ class Environment(gym.Env):
         )
 
         # Count trade
-        self.num_trade+=1
+        self.num_trade += 1
 
     def step(self, actions, b_panic=False):
         # Check simulation termination
-        self.b_terminal = self.current_day >= len(self.df.index.unique())-1
+        self.b_terminal = self.stock_dim*self.current_day >= len(self.df.index.unique())-1
         if self.b_terminal: ## Add terminal returns (call render)
             ''' 
             df_total_value = pd.DataFrame(self.asset_memory)
@@ -180,10 +186,14 @@ class Environment(gym.Env):
                 self._buy_stock(index, action)
 
         # Update variables
-        self.current_day += 1
-        index_list = (self.current_day+1)*np.arange(self.stock_dim)
+        index_list = np.arange(
+            self.current_day*self.stock_dim,
+            (self.current_day+1)*self.stock_dim
+        )
+        print(index_list)
         self.data = self.df.loc[index_list, :]
         self.turbulence = self.data['turbulence'].values[0]
+        self.current_day += 1
             
         # Load next state
         self.state = (
@@ -314,7 +324,10 @@ class Framework(gym.Wrapper):
             
             # Reset data
             self.env.current_day = 0
-            index_list = (self.env.current_day+1)*np.arange(self.stock_dim)
+            index_list = np.arange(
+                self.env.current_day*self.stock_dim,
+                (self.env.current_day+1)*self.stock_dim
+            )
             self.env.data = self.df.loc[index_list, :]
             self.env.b_terminal = False
 

@@ -129,3 +129,8 @@ class Strategy(ABC, Axuiliary):
         ''' Train model for a iteration
         '''
         self._agent.evolve(transitions)
+        
+    def predict(self, inputs, output_type):
+        ''' Do model prediction
+        '''
+        return self._agent.predict(inputs, output_type)
