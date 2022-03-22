@@ -7,44 +7,34 @@ import  numpy           as  np
 import  gym
 from    gym             import  spaces, error
 from    gym.utils       import  closer, seeding
-from    gym.logger      import  deprecation
 
 
 class Environment(gym.Env):
-    ''' The main OpenAI Gym class. 
-        
-        It encapsulates an environment with arbitrary behind-the-scenes dynamics. 
-        An environment can be partially or fully observed.
-    
-        The main API methods that users of this class need to know are:
-            
-            step
-            reset
-            render
-            close
-            seed
+    ''' Stock Trading Environment of GYM API
+     
+        The continous action space is normalized between (-1, 1) 
+        and scaled as 'hmax_norm'
 
-        And set the following attributes:
+        The observation space is to be in (0, inf)
         
-            action_space: 
-                The Space object corresponding to valid actions
-            observation_space: 
-                The Space object corresponding to valid observations
-            reward_range: 
-                A tuple corresponding to the min and max possible rewards
-    
-        Note that a default reward range set to [-inf,+inf] already exists. 
-        Set it if you want a narrower range.
-        The methods are accessed publicly as "step", "reset", etc...
+            len(observation_space) = 181 = (
+                [Current Balance]
+                + [prices: 1 to stock_dim=30]
+                + [owned shares: 1 to stock_dim=30]
+                + [macd: 1 to stock_dim=30]
+                + [rsi: 1 to stock_dim=30]
+                + [cci: 1 to stock_dim=30]
+                + [adx: 1 to stock_dim=30]
+            )    
     '''
     def __init__(self, df,
                        current_day=0,
-                       b_start_day=True,
                        stock_dim=30,                    # total number of stocks in our portfolio
-                       hmax_norm=100,              # shares normalization factor, e.g.) 100 shares per trade
-                       init_account_balance=1000000, # initial amount of money we have in our account
+                       hmax_norm=100,                   # shares normalization factor, e.g.) 100 shares per trade
+                       init_account_balance=1000000,    # initial amount of money we have in our account
                        transaction_fee_percent=.0001,   # trasaction fee, e.g.) 0.1% resonable percentage
-                       reward_scale=1.e-4,            # reward scaling factor
+                       reward_scale=1.e-4,              # reward scaling factor
+                       random_seed=931016
                 ):
         # Set data
         self.df = df
@@ -55,29 +45,14 @@ class Environment(gym.Env):
         self.observation_dim = 6*stock_dim+1
         self.owned_share_indice = slice(stock_dim+1, 2*stock_dim+1)
         self.hmax_norm = hmax_norm
-        self.INITITAL_ACCOUNT_BALANCE = init_account_balance
+        self.init_account_balance = init_account_balance
         self.transaction_fee_percent = transaction_fee_percent
         self.reward_scale = reward_scale
 
-        '''
-        The continous action space is normalized between -1 and 1 and scaled as
-        'stock_dim'
-
-        The observation space is to be in (0, inf)
-        len(observation_space) = (
-            [Current Balance]
-            + [prices: 1 to stock_dim=30]
-            + [owned shares: 1 to stock_dim=30] 
-            + [macd: 1 to stock_dim=30]
-            + [rsi: 1 to stock_dim=30] 
-            + [cci: 1 to stock_dim=30] 
-            + [adx: 1 to stock_dim=30]
-        )
-        '''
         # Set subclasses
-        self.action_space = spaces.Box(low=-1, high=1, shape=stock_dim)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(stock_dim,))
         self.observation_space = spaces.Box(
-            low=0, high=np.inf, shape=(observation_dim,)
+            low=0, high=np.inf, shape=(self.observation_dim,)
         )
         self.reward_range = (-np.inf, np.inf)
         
@@ -87,13 +62,17 @@ class Environment(gym.Env):
         }
        
         # Initialize state 
-        _ = self.reset(b_start_day)
+        _ = self.reset()
         if current_day != 0:    # Starting current_day is Not first current_day 
             self.current_day = current_day
-            self.data = self.df.loc[self.current_day, :]
+            index_list = np.arange(
+                self.current_day*self.stock_dim,
+                (self.current_day+1)*self.stock_dim
+            )
+            self.data = self.df.loc[index_list, :]
         
         # Get random number generator
-        self.rng, _ = seeding.np_random(seed)
+        self.rng, _ = seeding.np_random(random_seed)
 
     def reset(self):
         # Reset memorize all the total balance change
@@ -107,14 +86,18 @@ class Environment(gym.Env):
         
         # Reset data
         self.current_day = 0
-        self.data = self.df.loc[self.current_day, :]
+        index_list = np.arange(
+            self.current_day*self.stock_dim,
+            (self.current_day+1)*self.stock_dim
+        )
+        self.data = self.df.loc[index_list, :]
         self.b_terminal = False
-        
+       
         # Reset state
         self.state = (
-            [init_account_balance] 
+            [self.init_account_balance] 
             + self.data.adjcp.values.tolist()
-            + [0]*stock_dim 
+            + [0]*self.stock_dim 
             + self.data.macd.values.tolist()
             + self.data.rsi.values.tolist()
             + self.data.cci.values.tolist() 
@@ -166,11 +149,11 @@ class Environment(gym.Env):
         )
 
         # Count trade
-        self.num_trade+=1
+        self.num_trade += 1
 
     def step(self, actions, b_panic=False):
         # Check simulation termination
-        self.b_terminal = self.current_day >= len(self.df.index.unique())-1
+        self.b_terminal = self.stock_dim*self.current_day >= len(self.df.index.unique())-1
         if self.b_terminal: ## Add terminal returns (call render)
             ''' 
             df_total_value = pd.DataFrame(self.asset_memory)
@@ -178,7 +161,7 @@ class Environment(gym.Env):
             sharpe = (4**0.5)*df_total_value['daily_return'].mean()/ \
                   df_total_value['daily_return'].std()
             '''
-            return self.state, self.reward, self.b_terminal, {}
+            return self.state, self.reward, self.b_terminal, self.metadata
     
         # Get trade strategy
         if b_panic:    # Over the threshold of turbulence index, do panic sell
@@ -191,7 +174,7 @@ class Environment(gym.Env):
             self.state[0]
             + sum(
                 np.array(self.state[1:self.stock_dim+1])
-                * np.array(self.state[self.owned_share_indice)]
+                * np.array(self.state[self.owned_share_indice])
             )
         )
 
@@ -203,9 +186,14 @@ class Environment(gym.Env):
                 self._buy_stock(index, action)
 
         # Update variables
-        self.current_day += 1
-        self.data = self.df.loc[self.current_day,:]         
+        index_list = np.arange(
+            self.current_day*self.stock_dim,
+            (self.current_day+1)*self.stock_dim
+        )
+        print(index_list)
+        self.data = self.df.loc[index_list, :]
         self.turbulence = self.data['turbulence'].values[0]
+        self.current_day += 1
             
         # Load next state
         self.state = (
@@ -235,7 +223,7 @@ class Environment(gym.Env):
         self.reward_history.append(self.reward)
         self.reward = self.reward * self.reward_scale
 
-        return self.state, self.reward, self.b_terminal, {}
+        return self.state, self.reward, self.b_terminal, self.metadata
    
     
     def render(self, mode="human"):
@@ -336,7 +324,11 @@ class Framework(gym.Wrapper):
             
             # Reset data
             self.env.current_day = 0
-            self.env.data = self.df.loc[self.env.current_day, :]
+            index_list = np.arange(
+                self.env.current_day*self.stock_dim,
+                (self.env.current_day+1)*self.stock_dim
+            )
+            self.env.data = self.df.loc[index_list, :]
             self.env.b_terminal = False
 
             # Reset state

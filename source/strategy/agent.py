@@ -37,7 +37,7 @@ class Agent(ABC):
         return None
 
 
-class Axuiliary(object)
+class Axuiliary(object):
     ''' Axuiliary subclass including utility methods
     '''
     def reshape(self, x):
@@ -79,7 +79,7 @@ class Strategy(ABC, Axuiliary):
         self.env = env
 
         # Model parameters
-        self.input_dim = env.obervation_dim
+        self.input_dim = env.observation_dim
         self.output_dim = env.stock_dim
         self.num_frame = len(env.df.index.unique())
         self.gamma = gamma
@@ -129,3 +129,8 @@ class Strategy(ABC, Axuiliary):
         ''' Train model for a iteration
         '''
         self._agent.evolve(transitions)
+        
+    def predict(self, inputs, output_type):
+        ''' Do model prediction
+        '''
+        return self._agent.predict(inputs, output_type)

@@ -5,7 +5,7 @@ import  pandas      as  pd
 
 from    stockstats      import  StockDataFrame      as  sdf
 
-from    preproc.uploader        import  Uploader
+from    .uploader        import  Uploader
 
 
 # Headers
@@ -20,7 +20,7 @@ OHLCV_VALUE_HEADS = [
 
 # Variables
 DEFAULT_TECHNICAL_INDICATOR_LIST = [
-    "macd", "rsi_30", "cci_30", "dx_30"
+    "macd", "rsi", "cci", "adx"
 ]
 DEFAULT_USER_DEFINED_FEATURES = {
 }
@@ -238,7 +238,7 @@ def add_turbulence_index(df):
     return x
 
 
-class DatasetIOMethod(object):
+class DatasetIOStaticMethod(object):
     @staticmethod
     def load_yahoo_finance(tickers, start_date, end_date):
         ''' Load Yahoo finance dataset
@@ -254,7 +254,7 @@ class DatasetIOMethod(object):
         # Set path of data csv file
         file_path = (
             os.path.dirname(os.path.realpath(__file__))
-            + "/" + file_name
+            + "/../" + file_name
         )
 
         # Load dataset
@@ -289,14 +289,14 @@ class DatasetIOMethod(object):
             of which being between 'start_date' and 'end_date'
         '''
         # Extract batch and sort items in order of 'date'
-        df_batch = df[(df.datadata >= start_date) & (df.date < end_date)]
+        df_batch = df[(df.date >= start_date) & (df.date < end_date)]
         df_batch = df_batch.sort_values(by=["date", "tic"])
         df_batch = df_batch.reset_index(drop=True)    # reindexing
 
         return df_batch
 
 
-class Preprocessor(DatasetIOMethod):
+class Preprocessor(DatasetIOStaticMethod):
     def __init__(self, technical_indicator_list=list(),
                        user_defined_features=dict(), 
                        b_use_technical_indicator=True,

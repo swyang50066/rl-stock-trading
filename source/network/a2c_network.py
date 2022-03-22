@@ -33,8 +33,8 @@ class A2CNetwork(tf.keras.Model):
         input_state, input_value = inputs
 
         # Shared feed-forward network
-        x = self.flatten(input_state)
-        x = self.bn_dense0(x)
+        #x = self.flatten(input_state)
+        x = self.bn_dense0(input_state)
         x = self.bn_dense1(x)
 
         # Actor pathway
@@ -44,6 +44,6 @@ class A2CNetwork(tf.keras.Model):
 
         # Critic pathway
         output_value = self.value_dense0(x)
-        output_value = self.value(output_value)
+        output_value = self.value_dense1(output_value)
   
         return [output_mu, output_log_sigma, output_value]

@@ -54,17 +54,27 @@ class StockTrader(object):
         
         # Load dataset
         print("[2] Load dataset and apply preprocessing")
+        input_file_name = (
+            self.config["input_folder_path"] 
+            + self.config["dataset_file_name"]
+        )
         dataset = preprocessor.load_csv(
-            filename=self.config["dataset_file_name"]
+            tickers=self.config["ticker_list"],
+            file_name=input_file_name,
+            b_adjusted=True
         )
         dataset = preprocessor.apply(dataset)
+        dataset = preprocessor.batch(
+            dataset, start_date=20120102, end_date=20121230
+        )
+
+        print(len(dataset.index.unique()))
 
         # Declare environment
         print("[3] Set environment")
         environment = Environment(
             dataset, 
             current_day=0,
-            b_start_day=True,
             stock_dim=self.config["max_num_stock_hold"],
             hmax_norm=self.config["max_normalized_share_size"],
             init_account_balance=self.config["initital_account_balance"],
@@ -77,13 +87,22 @@ class StockTrader(object):
         simulator = A2CStrategy(
             env=environment, 
             gamma=self.config["gamma"],
-            init_learning_rate=self.config["init_learning_rate"]
+            init_learning_rate=self.config["init_learning_rate"],
             num_episode=self.config["num_episode"] 
         )
 
         # Train agent
         print("[5] Run!")
-        agent.train()
+        simulator.train()
 
     def trade(self):
         pass
+
+
+if __name__ == "__main__":
+    simulator = StockTrader(
+        mode="train",
+        config_file_name="train_config.json"
+    )
+
+    simulator.train()
