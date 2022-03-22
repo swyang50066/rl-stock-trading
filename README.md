@@ -1,4 +1,4 @@
-# WATERMELON: Multi-Agent Reinforcement Learning Based Stock Trading Algorithm
+# WATERMELON: Multi-Agent Reinforcement Learning Based Algorithmic Stock Trading with GUI application
 
 <img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/> <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
 
@@ -9,7 +9,7 @@ Unfortunately, the source code is currently under maintenance but of which alpha
 
 
 ## 2. Requirements
-```
+```bash
 requirements = { 
     tensorflow>=2.6.0
     numpy~=1.19.5,
@@ -22,6 +22,14 @@ requirements = {
 }
 ```
 
+```bash
+requirements = {
+    opencv-python,
+    pyqt5,
+    matplotlib,
+}
+```
+        
 
 ## 3. Installation 
 ***This would be updated soon!***
