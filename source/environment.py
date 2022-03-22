@@ -190,7 +190,6 @@ class Environment(gym.Env):
             self.current_day*self.stock_dim,
             (self.current_day+1)*self.stock_dim
         )
-        print(index_list)
         self.data = self.df.loc[index_list, :]
         self.turbulence = self.data['turbulence'].values[0]
         self.current_day += 1
