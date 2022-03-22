@@ -65,10 +65,8 @@ class StockTrader(object):
         )
         dataset = preprocessor.apply(dataset)
         dataset = preprocessor.batch(
-            dataset, start_date=20120102, end_date=20121230
+            dataset, start_date=20120102, end_date=20120227
         )
-
-        print(len(dataset.index.unique()))
 
         # Declare environment
         print("[3] Set environment")

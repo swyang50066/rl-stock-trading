@@ -1,9 +1,10 @@
 import  numpy       as  np
 
 import  tensorflow      as  tf
-from    tensorflow.keras.models        import  Model
-from    tensorflow.keras.layers        import  Input
-from    tensorflow.keras.optimizers    import  RMSprop
+import  tensorflow.keras.backend        as  K
+from    tensorflow.keras.models         import  Model
+from    tensorflow.keras.layers         import  Input
+from    tensorflow.keras.optimizers     import  RMSprop
 
 
 from    loss                    import  (policy_loss_func, 
@@ -34,21 +35,24 @@ class A2CAgent(Agent):
         # Outputs
         mu, log_sigma, value = A2CNetwork(output_dim=self.output_dim)(inputs)
         outputs = [tf.concat([mu, log_sigma], axis=-1), value]
-        
-        # Advantage; discounted_reward - critic_predicted_value
-        self.advantage = input_value - value
 
         # Build model        
         self.model = Model(inputs=inputs, outputs=outputs)
+        
+        # Advantage; discounted_reward - critic_predicted_value
+        self.advantage = input_value - value
 
     def setup(self):
         ''' Set optimizer, loss and callback functions
         '''
         # Set optimizer, loss functions and callbacks
         self.optimizer = RMSprop(
-            learning_rate=self.lr, epsilon=0.1, rho=0.99
+            learning_rate=self.lr, epsilon=.1, rho=.99
         )
-        self.losses = [policy_loss_func(self.advantage), value_loss_func]
+        self.losses = [
+            policy_loss_func(self.advantage), 
+            value_loss_func,
+        ]
         self.callbacks = list()
 
     def compile(self):
@@ -74,14 +78,14 @@ class A2CAgent(Agent):
         targets = [action_buffer, critic_pred]
         self.model.train_on_batch(x=inputs, y=targets)
 
-    def predict(self, inputs, output_type="params"):
+    def predict(self, inputs, output_type="policy"):
         ''' Do model prediction
 
             'output_type' is a element of tuple ("parmas", "value")
         ''' 
         outputs = self.model.predict(inputs)
-        if output_type == "params":
-            return outputs[0]
+        if output_type == "policy":
+            return np.split(outputs[0], 2, axis=-1)
         elif output_type == "value":
             return outputs[1]
 
@@ -117,18 +121,14 @@ class A2CStrategy(Strategy):
         ''' Use actor policy to get next action
         '''
         # Get Gaussian policy   
-        inputs = (
-            np.expand_dims(state, axis=0),
-            np.zeros(shape=(1, 1))
+        mu, log_sigma = self.predict(
+            (np.expand_dims(state, axis=0), np.zeros(shape=(1, 1))),
+            output_type="policy"
         )
-        params = self.predict(inputs, output_type="params")
 
         # Sampling and symmetrically normalize along (-1, 1) 
-        action = np.random.normal(
-            params[0, :self.output_dim], 
-            np.exp(params[0, self.output_dim:])
-        )
-        action = np.clip(action, -1, 1)
+        action = np.random.normal(mu, np.exp(log_sigma))
+        action = np.clip(action, -1, 1).ravel()
 
         return action
 
@@ -181,7 +181,7 @@ class A2CStrategy(Strategy):
             
             # Evolve agents
             self.evolve(transitions)
-
+            
     def trade(self):
         ''' Start stock trade
         '''
