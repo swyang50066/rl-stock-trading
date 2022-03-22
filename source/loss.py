@@ -25,8 +25,8 @@ def policy_loss_func(y_true, y_pred, alpha=.01, eps=1.e-16):
 
     # Parse inputs
     mu, log_sigma = tf.split(y_pred, num_or_size_splits=2, axis=-1)
-    action, advantage = tf.split(y_true, num_or_size_splits=[2, 1], axis=-1)
-    
+    action, advantage = tf.split(y_true, num_or_size_splits=[-1, 1], axis=-1)
+   
     # Get negative logarithmic of Gaussian distribution
     neglogp = K.mean(_neglogp(action, mu, K.exp(log_sigma)))
        
