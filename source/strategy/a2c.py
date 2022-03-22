@@ -38,9 +38,6 @@ class A2CAgent(Agent):
 
         # Build model        
         self.model = Model(inputs=inputs, outputs=outputs)
-        
-        # Advantage; discounted_reward - critic_predicted_value
-        self.advantage = input_value - value
 
     def setup(self):
         ''' Set optimizer, loss and callback functions
@@ -49,10 +46,7 @@ class A2CAgent(Agent):
         self.optimizer = RMSprop(
             learning_rate=self.lr, epsilon=.1, rho=.99
         )
-        self.losses = [
-            policy_loss_func(self.advantage), 
-            value_loss_func,
-        ]
+        self.losses = [policy_loss_func, value_loss_func]
         self.callbacks = list()
 
     def compile(self):
@@ -73,9 +67,12 @@ class A2CAgent(Agent):
         inputs = [state_buffer, np.zeros((state_buffer.shape[0], 1))]
         critic_pred = self.predict(inputs, output_type="value")
 
+        # Advantage; discounted reward - predicted value
+        advantage = reward_buffer - critic_pred
+
         # Train on batch
         inputs = [state_buffer, reward_buffer]
-        targets = [action_buffer, critic_pred]
+        targets = [np.concatenate([action_buffer, critic_pred], axis=-1), critic_pred]
         self.model.train_on_batch(x=inputs, y=targets)
 
     def predict(self, inputs, output_type="policy"):
