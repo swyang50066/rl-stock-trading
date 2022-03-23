@@ -1,0 +1,30 @@
+name: WATERMELON_RUNNER
+
+on:
+  push:
+    branches: [ main ]
+    
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        
+    steps:
+      - uses: actions/checkout@v2
+
+      # Set up python environment
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Run watermelon
+      - name: Run watermelon Qt application
+        run: |
+          python3 ./watermelon/watermelon.py
