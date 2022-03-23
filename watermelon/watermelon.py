@@ -1,7 +1,7 @@
-import  sys
+import sys
 
-from    window          import  Interface, Structure
-from    action.action   import  Action
+from window import Interface, Structure
+from action.action import Action
 
 
 class Watermelon(Action, Interface, Structure):
@@ -9,8 +9,7 @@ class Watermelon(Action, Interface, Structure):
         super(Watermelon, self).__init__()
 
     def execute(self):
-        ''' Execute WATERMELON
-        '''
+        """Execute WATERMELON"""
         # Apply style sheet
         # UI design is to be updated later.
 
