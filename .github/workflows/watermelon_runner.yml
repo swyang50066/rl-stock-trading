@@ -2,10 +2,16 @@ name: WATERMELON_RUNNER
 
 on:
   push:
-    branches: [ main ]
-    
+    branches:
+      - main
+    paths: 
+      - "./watermelon"
+      
   pull_request:
-    branches: [ main ]
+    branches: 
+      - main
+    paths:
+      - "./watermelon"
 
 jobs:
   build:
