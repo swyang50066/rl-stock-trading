@@ -1,4 +1,4 @@
-# WATERMELON: Multi-Agent Reinforcement Learning Based Algorithmic Stock Trading System with GUI application
+# WATERMELON: Multi-Agent Reinforcement Learning Based Algorithmic Stock Trading System with GUI Application
 
 <img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/> <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
 
