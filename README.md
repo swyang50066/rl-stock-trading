@@ -1,6 +1,8 @@
 # WATERMELON: Multi-Agent Reinforcement Learning Based Algorithmic Stock Trading System with GUI Application
 
-<img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/> <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
+<img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/>
+<img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
+[![WATERMELON_RUNNER](https://github.com/swyang50066/rl-stock-trading/actions/workflows/watermelon_runner.yml/badge.svg)](https://github.com/swyang50066/rl-stock-trading/actions/workflows/watermelon_runner.yml)
 
 ## 1. WATERMELON
 This repository is to introduce a multi-agent stock trading algorithm with a jointed policy distribution trained under strategy of deep reinforcement learning. The source code includes stock trading environment built with GYM API, various reinforcement learning algorithms (A2C, DDPG, PPO, ... etc.), and GUI application. As to RL algorithms, the numerical parts are largely built with `numpy`, but deep learning and linear algebra are to be accelerated and parallelized by using `Tensorflow`/`Pytorch` and `JAX`. 
