@@ -1,0 +1,8 @@
+tensorflow==2.6.0
+numpy==1.19.5
+scipy==1.4.0
+jax==0.2.26
+gym==0.20.0
+pandas==1.1.0
+yfinance==0.1.69
+stockstats==0.4.1
