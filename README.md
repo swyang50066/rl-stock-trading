@@ -3,7 +3,7 @@
 <img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue"/> <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
 
 ## 1. WATERMELON
-This repository is to introduce a multi-agent stock trading algorithm with a jointed policy distribution trained under strategy of deep reinforcement learning. The source code includes stock trading environment built with GYM API, various reinforcement learning algorithms (A2C, DDPG, PPO, ... etc.), and GUI application. As to RL algorithms, the numerical parts are largely built with `numpy`, but deep learning and linear algebra are to be accelerated and parallelized by using `Pytorch` and `JAX`. 
+This repository is to introduce a multi-agent stock trading algorithm with a jointed policy distribution trained under strategy of deep reinforcement learning. The source code includes stock trading environment built with GYM API, various reinforcement learning algorithms (A2C, DDPG, PPO, ... etc.), and GUI application. As to RL algorithms, the numerical parts are largely built with `numpy`, but deep learning and linear algebra are to be accelerated and parallelized by using `Tensorflow`/`Pytorch` and `JAX`. 
 
 Unfortunately, the source code is currently under maintenance but of which alpha version is going to be released as soon as possible!
 
