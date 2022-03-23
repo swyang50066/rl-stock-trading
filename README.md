@@ -23,7 +23,7 @@ requirements = {
 ```
 
 ```bash
-requirements = {
+axuiliary_requirements = {
     opencv-python,
     pyqt5,
     matplotlib,
