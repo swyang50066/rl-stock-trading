@@ -2,10 +2,16 @@ name: WATERMELON_RUNNER
 
 on:
   push:
-    branches: [ main ]
-    
+    branches:
+      - main
+    paths: 
+      - "./watermelon"
+      
   pull_request:
-    branches: [ main ]
+    branches: 
+      - main
+    paths:
+      - "./watermelon"
 
 jobs:
   build:
@@ -13,7 +19,7 @@ jobs:
     
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7]
         
     steps:
       - uses: actions/checkout@v2
@@ -28,8 +34,7 @@ jobs:
       - name: Install python dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f auxiliary_requirements.txt ]; then pip install -r auxiliary_requirements.txt; fi
+          if [ -f requirements_watermelon.txt ]; then pip install -r requirements_watermelon.txt; fi
       
       # Run watermelon
       - name: Run watermelon Qt application
