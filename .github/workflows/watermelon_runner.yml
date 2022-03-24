@@ -34,7 +34,7 @@ jobs:
       - name: Install python dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f auxiliary_requirements.txt ]; then pip install -r auxiliary_requirements.txt; fi
+          if [ -f requirements_watermelon.txt ]; then pip install -r requirements_watermelon.txt; fi
       
       # Run watermelon
       - name: Run watermelon Qt application
