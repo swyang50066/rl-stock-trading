@@ -1,4 +1,5 @@
 import numpy as np
+
 # import  jax.numpy       as  jnp
 # from    jax             import  grad, jit, vmap
 
@@ -10,7 +11,7 @@ from gym.utils import closer, seeding
 
 
 class Environment(gym.Env):
-    """ Stock Trading Environment of GYM API
+    """Stock Trading Environment of GYM API
 
     The continous action space is normalized between (-1, 1)
     and scaled as 'hmax_norm'
@@ -308,14 +309,10 @@ class Framework(gym.Wrapper):
 
             # Previous total asset
             self.env.asset_history = [
-                (
-                    self.previous_state[0]
-                    + sum(
-                        np.array(self.previous_state[1 : self.stock_dim + 1])
-                        * np.array(
-                            self.previous_state[self.owned_share_indice]
-                        )
-                    )
+                self.previous_state[0]
+                + sum(
+                    np.array(self.previous_state[1 : self.stock_dim + 1])
+                    * np.array(self.previous_state[self.owned_share_indice])
                 )
             ]
             self.env.reward_history = []

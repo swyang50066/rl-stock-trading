@@ -323,24 +323,24 @@ class Preprocessor(DatasetIOStaticMethod):
         """Apply preprocessing"""
         # Add technical indicators using stockstats
         if self.b_use_technical_indicator:
-            print("Append technical indicators")
+            print("\t>>>> Append technical indicators")
             df = add_technical_indicator(
                 df, indicators=self.technical_indicator_list
             )
 
         # Add VIX for multiple stock
         if self.b_use_volatility_index:
-            print("Append volatility index (VIX)")
+            print("\t>>>> Append volatility index (VIX)")
             df = add_volatility_index(df)
 
         # Add turbulence index for multiple stock
         if self.b_use_turbulence_index:
-            print("Append turbulence index")
+            print("\t>>>> Append turbulence index")
             df = add_turbulence_index(df)
 
         # Add user defined feature
         if self.b_use_user_defined_index:
-            print("Append user-defined-feature")
+            print("\t>>>> Append user-defined-feature")
             df = add_user_defined_feature(
                 df, features=self.user_defined_features
             )
