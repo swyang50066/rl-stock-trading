@@ -1,6 +1,6 @@
 {
     "io_path_config": {
-        "input_folder_path": "../assets/dataset/",
+        "input_folder_path": "../data/",
         "output_folder_path": "./model"
     },
     "gpu_env_config": {
@@ -11,7 +11,10 @@
         ]
     },
     "dataset_config": {
+        "b_use_saved_dataset": true,
         "dataset_file_name": "dow30_2009_to_2020_adjusted.csv",
+        "start_date": 20120102,
+        "end_date": 20120227,
         "b_use_technical_indicator": true,
         "b_use_volatility_index": false,
         "b_use_turbulence_index": true,

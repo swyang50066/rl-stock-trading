@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 import numpy as np
 
 import tensorflow as tf
@@ -5,7 +7,6 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import RMSprop
-
 
 from loss import (
     policy_loss_func,
@@ -136,7 +137,7 @@ class A2CStrategy(Strategy):
 
     def train(self):
         """Train agent under A2C algorithm"""
-        for episode in range(self.num_episode):
+        for episode in tqdm(range(self.num_episode), desc="Episodes"):
             # Reset episode
             curr_state = self.env.reset()
             action_buffer, state_buffer, reward_buffer = [], [], []
@@ -144,7 +145,6 @@ class A2CStrategy(Strategy):
 
             # Simulate episode
             while not b_terminal:
-                print("iteration", episode, len(action_buffer))
                 # Actor an action by following the current policy
                 action = self.get_next_action(curr_state)
 
