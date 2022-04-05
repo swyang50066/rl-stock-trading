@@ -9,7 +9,8 @@ from environment import Environment, Framework
 
 from strategy.a2c import A2CStrategy
 
-from utils import set_config, make_directory, join_path_item
+from config import set_config
+from utils import make_directory, join_path_item
 
 
 class StockTraderWrapper(ABC):
